@@ -21,12 +21,12 @@
     <ClInclude Include="__vm\.fire-alarm.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ESP8266.h">
+    <ClInclude Include="src\ESP8266.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ESP8266.cpp">
+    <ClCompile Include="src\ESP8266.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
