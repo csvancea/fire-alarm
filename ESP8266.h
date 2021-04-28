@@ -25,11 +25,15 @@ public:
 	boolean SetMode(ESP8266_CWMODE mode);
 	boolean ConnectToAP(const String& ssid, const String& password);
 	boolean DisconnectFromAP();
+	boolean StartConnection(const String& type, const String& host, int port);
+	boolean CloseConnection();
+	boolean Send(const char *buffer, size_t size);
+	boolean Send(const String& string);
 
-	boolean ExecuteCommand(const String& command, String *response = NULL, unsigned long timeout = ESP8266_DEFAULT_COMMAND_TIMEOUT, boolean echo = false);
+	boolean ExecuteCommand(const String& command, const String& expectedResponse = "OK", String *response = NULL, unsigned long timeout = ESP8266_DEFAULT_COMMAND_TIMEOUT, boolean echo = false);
 
 private:
-	boolean ReadResponse(String *response = NULL, unsigned long timeout = ESP8266_DEFAULT_COMMAND_TIMEOUT, boolean echo = false);
+	boolean ReadResponse(const String& expectedResponse = "OK", String *response = NULL, unsigned long timeout = ESP8266_DEFAULT_COMMAND_TIMEOUT, boolean echo = false);
 
 
 	SoftwareSerial _serial;

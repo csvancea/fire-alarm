@@ -29,6 +29,18 @@ void setup() {
 		delay(1000);
 	}
 
+	while (!WiFi.StartConnection("TCP", "HOST", 7331)) {
+		delay(1000);
+	}
+
+	while (!WiFi.Send("ARDUINO + ESP8266 = <3")) {
+		delay(1000);
+	}
+
+	while (!WiFi.CloseConnection()) {
+		delay(1000);
+	}
+
 	while (!WiFi.DisconnectFromAP()) {
 		delay(1000);
 	}
