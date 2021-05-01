@@ -7,9 +7,13 @@
 #define PIN_ESP8266_RX 3
 #define PIN_ESP8266_TX 4
 
-#define PIN_RGBLED_R 5
-#define PIN_RGBLED_G 6
-#define PIN_RGBLED_B 7
+#define PIN_MQ2_GAS    A5
+#define PIN_IR_FLAME   2
+#define PIN_BUZZER     9
+
+#define PIN_RGBLED_R   10
+#define PIN_RGBLED_G   11
+#define PIN_RGBLED_B   12
 
 #define SLEEP_FOREVER() while(1) { SetLEDColour(255, 0, 0); delay(250); SetLEDColour(0, 0, 0); delay(100); }
 
@@ -26,6 +30,14 @@ void InitWiFi()
 	Serial.print("Waiting for Wi-Fi ...");
 
 	/* Wait until module is communicating */
+	while (!WiFi.IsInitialized()) {
+		delay(1000);
+	}
+
+	while (!WiFi.Reset()) {
+		delay(1000);
+	}
+
 	while (!WiFi.IsInitialized()) {
 		delay(1000);
 	}
@@ -72,6 +84,20 @@ void SetLEDColour(int r, int g, int b)
 	analogWrite(PIN_RGBLED_B, b);
 }
 
+void ReadSensors()
+{
+	int analogValue = analogRead(PIN_MQ2_GAS);
+	int flame = digitalRead(PIN_IR_FLAME);
+
+	Serial.print("Gas: ");
+	Serial.print(analogValue);
+	if (flame == LOW)
+		Serial.print(" | FLAME");
+	if (analogValue > 350)
+		Serial.print(" | THRES");
+	Serial.println("");
+}
+
 // the setup function runs once when you press reset or power the board
 void setup() {
 	Serial.begin(9600);
@@ -98,5 +124,6 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	WiFi.IsInitialized();
+	ReadSensors();
 	delay(5000);
 }
