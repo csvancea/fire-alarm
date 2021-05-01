@@ -1,7 +1,3 @@
-#include <SPI.h>
-#include <SD.h>
-#include <IniFile.h>
-
 #include "src/ESP8266.h"
 
 #define PIN_ESP8266_RX 3
@@ -11,9 +7,9 @@
 #define PIN_IR_FLAME   2
 #define PIN_BUZZER     9
 
-#define PIN_RGBLED_R   10
-#define PIN_RGBLED_G   11
-#define PIN_RGBLED_B   12
+#define PIN_RGBLED_R   5
+#define PIN_RGBLED_G   6
+#define PIN_RGBLED_B   7
 
 #define SLEEP_FOREVER() while(1) { SetLEDColour(255, 0, 0); delay(250); SetLEDColour(0, 0, 0); delay(100); }
 
