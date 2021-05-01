@@ -7,68 +7,19 @@
 #define PIN_ESP8266_RX 3
 #define PIN_ESP8266_TX 4
 
-#define SLEEP_FOREVER() while(1) { delay(~0); }
+#define PIN_RGBLED_R 5
+#define PIN_RGBLED_G 6
+#define PIN_RGBLED_B 7
+
+#define SLEEP_FOREVER() while(1) { SetLEDColour(255, 0, 0); delay(250); SetLEDColour(0, 0, 0); delay(100); }
 
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
-String WiFi_SSID, WiFi_Pass;
-String Server_Host, Server_GUID;
-unsigned short Server_Port;
-
-void InitSDCard()
-{
-	char buff[64];
-
-	Serial.print("Initializing SDCard ...");
-	pinMode(PIN_SPI_SS, OUTPUT);
-	if (!SD.begin(PIN_SPI_SS)) {
-		goto fail;
-	}
-	Serial.println(" OK!");
-
-	
-	Serial.print("Reading configuration file ...");
-
-	IniFile config("/FIRE-A~1/NET-CO~1.INI", FILE_READ);
-	if (!config.open()) {
-		goto fail;
-	}
-
-	if (!config.getValue("wifi", "ssid", buff, sizeof(buff))) {
-		goto fail;
-	}
-	WiFi_SSID = buff;
-	
-	if (!config.getValue("wifi", "pass", buff, sizeof(buff))) {
-		goto fail;
-	}
-	WiFi_Pass = buff;
-
-	if (!config.getValue("server", "host", buff, sizeof(buff))) {
-		goto fail;
-	}
-	Server_Host = buff;
-
-	if (!config.getValue("server", "port", buff, sizeof(buff))) {
-		goto fail;
-	}
-
-	Server_Port = strtoul(buff, NULL, 10);
-	if (!config.getValue("server", "guid", buff, sizeof(buff))) {
-		goto fail;
-	}
-	Server_GUID = buff;
-
-	Serial.println(" OK!");
-
-	config.close();
-	SD.end();
-	return;
-
-fail:
-	Serial.println(" FAILED!");
-	SLEEP_FOREVER();
-}
+const char WiFi_SSID[] = "SSID";
+const char WiFi_Pass[] = "PASS";
+const char Server_Host[] = "HOST";
+unsigned short Server_Port = 7331;
+const char Server_GUID[] = "GUID";
 
 void InitWiFi()
 {
@@ -114,6 +65,13 @@ fail:
 	SLEEP_FOREVER();
 }
 
+void SetLEDColour(int r, int g, int b)
+{
+	analogWrite(PIN_RGBLED_R, r);
+	analogWrite(PIN_RGBLED_G, g);
+	analogWrite(PIN_RGBLED_B, b);
+}
+
 // the setup function runs once when you press reset or power the board
 void setup() {
 	Serial.begin(9600);
@@ -123,9 +81,16 @@ void setup() {
 
 	Serial.println("\n-------- BOOT --------\n");
 
-	InitSDCard();
+	pinMode(PIN_RGBLED_R, OUTPUT);
+	pinMode(PIN_RGBLED_G, OUTPUT);
+	pinMode(PIN_RGBLED_B, OUTPUT);
+
+	SetLEDColour(255, 255, 255);
+
 	InitWiFi();
 	TestWiFiConnection();
+
+	SetLEDColour(0, 255, 0);
 
 	Serial.println("\n-------- DONE --------\n");
 }
