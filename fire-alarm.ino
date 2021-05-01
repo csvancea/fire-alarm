@@ -1,3 +1,7 @@
+#include <SPI.h>
+#include <SD.h>
+#include <IniFile.h>
+
 #include "src/ESP8266.h"
 
 #define PIN_ESP8266_RX 3
@@ -15,11 +19,56 @@
 
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
-const char WiFi_SSID[] = "SSID";
-const char WiFi_Pass[] = "PASS";
-const char Server_Host[] = "HOST";
-unsigned short Server_Port = 7331;
-const char Server_GUID[] = "GUID";
+char WiFi_SSID[32], WiFi_Pass[64];
+char Server_Host[32], Server_GUID[42];
+unsigned short Server_Port;
+
+void InitSDCard()
+{
+	Serial.print("Initializing SDCard ...");
+	if (!SD.begin(PIN_SPI_SS)) {
+		goto fail;
+	}
+	Serial.println(" OK!");
+
+
+	Serial.print("Reading configuration file ...");
+
+	IniFile config("/FIRE-A~1/NET-CO~1.INI", FILE_READ);
+	if (!config.open()) {
+		goto fail;
+	}
+
+	if (!config.getValue("wifi", "ssid", WiFi_SSID, sizeof(WiFi_SSID))) {
+		goto fail;
+	}
+
+	if (!config.getValue("wifi", "pass", WiFi_Pass, sizeof(WiFi_Pass))) {
+		goto fail;
+	}
+
+	if (!config.getValue("server", "host", Server_Host, sizeof(Server_Host))) {
+		goto fail;
+	}
+
+	if (!config.getValue("server", "port", Server_GUID, sizeof(Server_GUID))) {
+		goto fail;
+	}
+	Server_Port = strtoul(Server_GUID, NULL, 10);
+
+	if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_GUID))) {
+		goto fail;
+	}
+
+	Serial.println(" OK!");
+	config.close();
+	SD.end();
+	return;
+
+fail:
+	Serial.println(" FAILED!");
+	SLEEP_FOREVER();
+}
 
 void InitWiFi()
 {
@@ -109,6 +158,7 @@ void setup() {
 
 	SetLEDColour(255, 255, 255);
 
+	InitSDCard();
 	InitWiFi();
 	TestWiFiConnection();
 
