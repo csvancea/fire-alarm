@@ -31,6 +31,7 @@ public:
 	boolean ConnectToAP(const __FlashStringHelper *ssid, const __FlashStringHelper *password);
 	boolean ConnectToAP(const String& ssid, const String& password);
 	boolean DisconnectFromAP();
+	boolean IsConnectedToAP();
 	boolean StartConnection(const char *type, const char *host, int port);
 	boolean StartConnection(const __FlashStringHelper *type, const __FlashStringHelper *host, int port);
 	boolean StartConnection(const String& type, const String& host, int port);

@@ -53,6 +53,17 @@ boolean ESP8266::DisconnectFromAP()
 	return ExecuteCommand(F("AT+CWQAP"), F("WIFI DISCONNECT"), NULL, 5000);
 }
 
+boolean ESP8266::IsConnectedToAP()
+{
+	String response;
+
+	if (!ExecuteCommand(F("AT+CWJAP?"), F("OK"), &response)) {
+		return false;
+	}
+
+	return response.indexOf(F("+CWJAP")) != -1;
+}
+
 boolean ESP8266::StartConnection(const char *type, const char *host, int port)
 {
 	char command[ESP8266_MAX_HOST_LEN + 32];
