@@ -22,6 +22,11 @@ ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 char WiFi_SSID[32], WiFi_Pass[64];
 char Server_Host[32], Server_GUID[42];
 unsigned short Server_Port;
+unsigned long Server_LastTime;
+
+volatile boolean Flame_Detected;
+boolean Gas_Detected;
+int Gas_Value;
 
 void InitSDCard()
 {
@@ -74,29 +79,44 @@ void InitWiFi()
 {
 	Serial.print("Waiting for Wi-Fi ...");
 
-	/* Wait until module is communicating */
-	while (!WiFi.IsInitialized()) {
-		delay(1000);
+	if (!WiFi.IsInitialized()) {
+		/* Wait 5 seconds for the module to initialize */
+		delay(5000);
+
+		if (!WiFi.IsInitialized()) {
+			goto fail;
+		}
 	}
 
-	while (!WiFi.Reset()) {
-		delay(1000);
+	/* Reset just in case */
+	if (!WiFi.Reset()) {
+		goto fail;
 	}
 
-	while (!WiFi.IsInitialized()) {
-		delay(1000);
+	if (!WiFi.IsInitialized()) {
+		/* Wait 5 seconds for the module to initialize */
+		delay(5000);
+
+		if (!WiFi.IsInitialized()) {
+			goto fail;
+		}
 	}
-
-	Serial.println(" OK!");
-}
-
-void TestWiFiConnection()
-{
-	Serial.print("Testing Wi-Fi connection ...");
 
 	if (!WiFi.ConnectToAP(WiFi_SSID, WiFi_Pass)) {
 		goto fail;
 	}
+
+	Serial.println(" OK!");
+	return;
+
+fail:
+	Serial.println(" FAIL!");
+	SLEEP_FOREVER();
+}
+
+void TestServerConnection()
+{
+	Serial.print("Testing Server connection ...");
 
 	if (!WiFi.StartConnection("TCP", Server_Host, Server_Port)) {
 		goto fail;
@@ -107,10 +127,6 @@ void TestWiFiConnection()
 	}
 
 	if (!WiFi.CloseConnection()) {
-		goto fail;
-	}
-
-	if (!WiFi.DisconnectFromAP()) {
 		goto fail;
 	}
 
@@ -129,18 +145,47 @@ void SetLEDColour(int r, int g, int b)
 	analogWrite(PIN_RGBLED_B, b);
 }
 
-void ReadSensors()
+void ReadGasSensor()
 {
 	int analogValue = analogRead(PIN_MQ2_GAS);
-	int flame = digitalRead(PIN_IR_FLAME);
+	
+	if (analogValue > 350) {
+		Gas_Detected = true;
+		Gas_Value = analogValue;
+	}
+}
 
-	Serial.print("Gas: ");
-	Serial.print(analogValue);
-	if (flame == LOW)
-		Serial.print(" | FLAME");
-	if (analogValue > 350)
-		Serial.print(" | THRES");
-	Serial.println("");
+void FlameInterrupt()
+{
+	Flame_Detected = true;
+}
+
+boolean SendNotification()
+{
+	/* Flame detected interval: 0-1    = 1 bit of data */
+	/* Gas detected interval:   0-1    = 1 bit of data */
+	/* Gas sensor interval:     0-1023 = 10 bits of data */
+
+	/* VVVVVVVVVVGF <- LSB */
+	int encoded = (Gas_Value & 1023) << 2 | (Gas_Detected & 1) << 1 | (Flame_Detected & 1);
+
+	if (!WiFi.StartConnection("TCP", Server_Host, Server_Port)) {
+		return 0;
+	}
+
+	/* send as hexa string */
+	if (!WiFi.Send(String(encoded, HEX))) {
+		WiFi.CloseConnection();
+		return 0;
+	}
+
+	WiFi.CloseConnection();
+	return 1;
+}
+
+void Alarm()
+{
+
 }
 
 // the setup function runs once when you press reset or power the board
@@ -160,8 +205,9 @@ void setup() {
 
 	InitSDCard();
 	InitWiFi();
-	TestWiFiConnection();
+	TestServerConnection();
 
+	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, FALLING);
 	SetLEDColour(0, 255, 0);
 
 	Serial.println("\n-------- DONE --------\n");
@@ -169,7 +215,22 @@ void setup() {
 
 // the loop function runs over and over again until power down or reset
 void loop() {
-	WiFi.IsInitialized();
-	ReadSensors();
-	delay(5000);
+	unsigned long ms = millis();
+
+	ReadGasSensor();
+
+	if (Flame_Detected || Gas_Detected) {
+		Alarm();
+		SendNotification();
+		Flame_Detected = false;
+		Gas_Detected = false;
+
+		Serial.println(__LINE__);
+	}
+	else if (ms - Server_LastTime > 1000 * 60 * 10) {
+		/* Send heartbeat each 10 mins */
+		SendNotification();
+		Server_LastTime = ms;
+	}
+	delay(10000);
 }
