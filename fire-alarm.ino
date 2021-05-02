@@ -19,8 +19,8 @@
 
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
-char WiFi_SSID[32], WiFi_Pass[64];
-char Server_Host[32], Server_GUID[42];
+char WiFi_SSID[ESP8266_MAX_SSID_LEN], WiFi_Pass[ESP8266_MAX_PASS_LEN];
+char Server_Host[ESP8266_MAX_HOST_LEN], Server_GUID[42];
 unsigned short Server_Port;
 unsigned long Server_LastTime;
 
@@ -30,14 +30,14 @@ int Gas_Value;
 
 void InitSDCard()
 {
-	Serial.print("Initializing SDCard ...");
+	Serial.print(F("Initializing SDCard ..."));
 	if (!SD.begin(PIN_SPI_SS)) {
 		goto fail;
 	}
-	Serial.println(" OK!");
+	Serial.println(F(" OK!"));
 
 
-	Serial.print("Reading configuration file ...");
+	Serial.print(F("Reading configuration file ..."));
 
 	IniFile config("/FIRE-A~1/NET-CO~1.INI", FILE_READ);
 	if (!config.open()) {
@@ -65,19 +65,19 @@ void InitSDCard()
 		goto fail;
 	}
 
-	Serial.println(" OK!");
+	Serial.println(F(" OK!"));
 	config.close();
 	SD.end();
 	return;
 
 fail:
-	Serial.println(" FAILED!");
+	Serial.println(F(" FAILED!"));
 	SLEEP_FOREVER();
 }
 
 void InitWiFi()
 {
-	Serial.print("Waiting for Wi-Fi ...");
+	Serial.print(F("Waiting for Wi-Fi ..."));
 
 	if (!WiFi.IsInitialized()) {
 		/* Wait 5 seconds for the module to initialize */
@@ -106,23 +106,23 @@ void InitWiFi()
 		goto fail;
 	}
 
-	Serial.println(" OK!");
+	Serial.println(F(" OK!"));
 	return;
 
 fail:
-	Serial.println(" FAIL!");
+	Serial.println(F(" FAIL!"));
 	SLEEP_FOREVER();
 }
 
 void TestServerConnection()
 {
-	Serial.print("Testing Server connection ...");
+	Serial.print(F("Testing Server connection ..."));
 
-	if (!WiFi.StartConnection("TCP", Server_Host, Server_Port)) {
+	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
 		goto fail;
 	}
 
-	if (!WiFi.Send("ARDUINO + ESP8266 = <3")) {
+	if (!WiFi.Send(F("ARDUINO + ESP8266 = <3"))) {
 		goto fail;
 	}
 
@@ -130,11 +130,11 @@ void TestServerConnection()
 		goto fail;
 	}
 
-	Serial.println(" OK!");
+	Serial.println(F(" OK!"));
 	return;
 
 fail:
-	Serial.println(" FAILED!");
+	Serial.println(F(" FAILED!"));
 	SLEEP_FOREVER();
 }
 
@@ -168,7 +168,7 @@ boolean SendNotification()
 	/* VVVVVVVVVVGF <- LSB */
 	int encoded = (Gas_Value & 1023) << 2 | (Gas_Detected & 1) << 1 | (Flame_Detected & 1);
 
-	if (!WiFi.StartConnection("TCP", Server_Host, Server_Port)) {
+	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
 		return 0;
 	}
 
@@ -194,7 +194,7 @@ void setup() {
 		delay(1000);
 	}
 
-	Serial.println("\n-------- BOOT --------\n");
+	Serial.println(F("\n-------- BOOT --------\n"));
 
 	pinMode(PIN_RGBLED_R, OUTPUT);
 	pinMode(PIN_RGBLED_G, OUTPUT);
@@ -209,7 +209,7 @@ void setup() {
 	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, FALLING);
 	SetLEDColour(0, 255, 0);
 
-	Serial.println("\n-------- DONE --------\n");
+	Serial.println(F("\n-------- DONE --------\n"));
 }
 
 // the loop function runs over and over again until power down or reset
