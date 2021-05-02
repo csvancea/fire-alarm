@@ -181,7 +181,7 @@ boolean ESP8266::ReadResponse(const char *expectedResponse, String *response, un
 		if (waitUntil < millis()) {
 			/* no response */
 			status = false;
-			
+
 			if (echo) {
 				Serial.println(F("TIMEOUT"));
 			}
