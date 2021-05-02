@@ -147,11 +147,10 @@ void SetLEDColour(int r, int g, int b)
 
 void ReadGasSensor()
 {
-	int analogValue = analogRead(PIN_MQ2_GAS);
-	
-	if (analogValue > 350) {
+	Gas_Value = analogRead(PIN_MQ2_GAS);
+
+	if (Gas_Value > 500) {
 		Gas_Detected = true;
-		Gas_Value = analogValue;
 	}
 }
 
@@ -224,10 +223,8 @@ void loop() {
 		SendNotification();
 		Flame_Detected = false;
 		Gas_Detected = false;
-
-		Serial.println(__LINE__);
 	}
-	else if (ms - Server_LastTime > 1000 * 60 * 10) {
+	else if (Server_LastTime == 0 || ms - Server_LastTime > 1000UL * 60 * 10) {
 		/* Send heartbeat each 10 mins */
 		SendNotification();
 		Server_LastTime = ms;
