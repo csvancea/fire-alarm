@@ -15,12 +15,27 @@
 #define PIN_RGBLED_G   6
 #define PIN_RGBLED_B   7
 
-#define SLEEP_FOREVER() while(1) { SetLEDColour(255, 0, 0); delay(250); SetLEDColour(0, 0, 0); delay(100); }
+enum {
+	ERROR_OK,
+	ERROR_SDCARD,
+	ERROR_WIFI,
+	ERROR_SERVER,
+	ERROR_COUNT
+};
+
+static const uint8_t Error_Colours[ERROR_COUNT][3] PROGMEM = {
+	{0, 255, 0},    /* OK - green */
+	{255, 80, 185}, /* SDCard - pink */
+	{218, 0, 252},  /* Wi-Fi - purple */
+	{255, 0, 0},    /* Server - red */
+};
+
+#define SLEEP_FOREVER(...) while(1) { SetLEDColour(__VA_ARGS__); delay(250); SetLEDColour(0, 0, 0); delay(100); }
 
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
 char WiFi_SSID[ESP8266_MAX_SSID_LEN], WiFi_Pass[ESP8266_MAX_PASS_LEN];
-char Server_Host[ESP8266_MAX_HOST_LEN], Server_GUID[42];
+char Server_Host[ESP8266_MAX_HOST_LEN], Server_GUID[64];
 unsigned short Server_Port;
 unsigned long Server_LastTime;
 
@@ -133,9 +148,18 @@ boolean InitWiFi()
 	return true;
 }
 
-boolean TestServerConnection()
+boolean SendMessageToServer(const String& message)
 {
-	Serial.print(F("Testing Server connection ..."));
+	Serial.print(F("Sending message to server ..."));
+
+	if (!WiFi.IsConnectedToAP()) {
+		Serial.println(F("\nLost connection to the Wi-Fi access point."));
+
+		/* Try to reconnect to the AP */
+		if (!InitWiFi()) {
+			return false;
+		}
+	}
 
 	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
 		Serial.print(F(" FAILED!"));
@@ -143,9 +167,9 @@ boolean TestServerConnection()
 		return false;
 	}
 
-	if (!WiFi.Send(F("ARDUINO + ESP8266 = <3"))) {
+	if (!WiFi.Send(message)) {
 		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't send the test message"));
+		Serial.println(F(" -- couldn't send the message"));
 		return false;
 	}
 
@@ -164,6 +188,16 @@ void SetLEDColour(int r, int g, int b)
 	analogWrite(PIN_RGBLED_R, r);
 	analogWrite(PIN_RGBLED_G, g);
 	analogWrite(PIN_RGBLED_B, b);
+}
+
+void SetLEDColour(int error)
+{
+	if (error < 0 || error >= ERROR_COUNT) {
+		SetLEDColour(255, 255, 0);
+	}
+	else {
+		SetLEDColour(pgm_read_byte(&Error_Colours[error][0]), pgm_read_byte(&Error_Colours[error][1]), pgm_read_byte(&Error_Colours[error][2]));
+	}
 }
 
 void ReadGasSensor()
@@ -189,23 +223,8 @@ boolean SendNotification()
 	/* VVVVVVVVVVGF <- LSB */
 	int encoded = (Gas_Value & 1023) << 2 | (Gas_Detected & 1) << 1 | (Flame_Detected & 1);
 
-	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
-		return 0;
-	}
-
-	/* send as hexa string */
-	if (!WiFi.Send(String(encoded, HEX))) {
-		WiFi.CloseConnection();
-		return 0;
-	}
-
-	WiFi.CloseConnection();
-	return 1;
-}
-
-void Alarm()
-{
-
+	/* Send as hex string */
+	return SendMessageToServer(String(encoded, HEX));
 }
 
 // the setup function runs once when you press reset or power the board
@@ -224,19 +243,19 @@ void setup() {
 	SetLEDColour(255, 255, 255);
 
 	if (!InitSDCard()) {
-		SLEEP_FOREVER();
+		SLEEP_FOREVER(ERROR_SDCARD);
 	}
 
 	if (!InitWiFi()) {
-		SLEEP_FOREVER();
+		SLEEP_FOREVER(ERROR_WIFI);
 	}
 
-	if (!TestServerConnection()) {
-		SLEEP_FOREVER();
+	if (!SendMessageToServer(F("ARDUINO + ESP8266 = <3"))) {
+		SLEEP_FOREVER(ERROR_SERVER);
 	}
 
 	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, FALLING);
-	SetLEDColour(0, 255, 0);
+	SetLEDColour(ERROR_OK);
 
 	Serial.println(F("\n-------- DONE --------\n"));
 }
@@ -244,19 +263,32 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	unsigned long ms = millis();
+	int sendRet = -1;
 
 	ReadGasSensor();
 
 	if (Flame_Detected || Gas_Detected) {
-		Alarm();
-		SendNotification();
-		Flame_Detected = false;
-		Gas_Detected = false;
+		sendRet = SendNotification();
+
+		/* reset detection status only if we've notified the user via Wi-Fi */
+		if (sendRet) {
+			Flame_Detected = false;
+			Gas_Detected = false;
+		}
 	}
 	else if (Server_LastTime == 0 || ms - Server_LastTime > 1000UL * 60 * 10) {
 		/* Send heartbeat each 10 mins */
-		SendNotification();
+		sendRet = SendNotification();
 		Server_LastTime = ms;
 	}
+
+	/* mark send errors */
+	if (sendRet == 0) {
+		SetLEDColour(ERROR_SERVER);
+	}
+	else if (sendRet == 1) {
+		SetLEDColour(ERROR_OK);
+	}
+
 	delay(10000);
 }
