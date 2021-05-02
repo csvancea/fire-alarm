@@ -28,11 +28,13 @@ volatile boolean Flame_Detected;
 boolean Gas_Detected;
 int Gas_Value;
 
-void InitSDCard()
+boolean InitSDCard()
 {
 	Serial.print(F("Initializing SDCard ..."));
 	if (!SD.begin(PIN_SPI_SS)) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- make sure you've inserted a card"));
+		return false;
 	}
 	Serial.println(F(" OK!"));
 
@@ -41,56 +43,73 @@ void InitSDCard()
 
 	IniFile config("/FIRE-A~1/NET-CO~1.INI", FILE_READ);
 	if (!config.open()) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't open config file: /fire-alarm/net-config.ini"));
+		return false;
 	}
 
 	if (!config.getValue("wifi", "ssid", WiFi_SSID, sizeof(WiFi_SSID))) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't read Wi-Fi SSID"));
+		return false;
 	}
 
 	if (!config.getValue("wifi", "pass", WiFi_Pass, sizeof(WiFi_Pass))) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't read Wi-Fi password"));
+		return false;
 	}
 
 	if (!config.getValue("server", "host", Server_Host, sizeof(Server_Host))) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't read server host"));
+		return false;
 	}
 
 	if (!config.getValue("server", "port", Server_GUID, sizeof(Server_GUID))) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't read server port"));
+		return false;
 	}
 	Server_Port = strtoul(Server_GUID, NULL, 10);
+	if (Server_Port < 1 || Server_Port > 65535) {
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- invalid server port"));
+		return false;
+	}
 
 	if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_GUID))) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't read server GUID"));
+		return false;
 	}
 
 	Serial.println(F(" OK!"));
 	config.close();
 	SD.end();
-	return;
-
-fail:
-	Serial.println(F(" FAILED!"));
-	SLEEP_FOREVER();
+	return true;
 }
 
-void InitWiFi()
+boolean InitWiFi()
 {
-	Serial.print(F("Waiting for Wi-Fi ..."));
+	Serial.print(F("Initializing Wi-Fi ..."));
 
 	if (!WiFi.IsInitialized()) {
 		/* Wait 5 seconds for the module to initialize */
 		delay(5000);
 
 		if (!WiFi.IsInitialized()) {
-			goto fail;
+			Serial.print(F(" FAILED!"));
+			Serial.println(F(" -- not responding"));
+			return false;
 		}
 	}
 
 	/* Reset just in case */
 	if (!WiFi.Reset()) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't reset"));
+		return false;
 	}
 
 	if (!WiFi.IsInitialized()) {
@@ -98,44 +117,46 @@ void InitWiFi()
 		delay(5000);
 
 		if (!WiFi.IsInitialized()) {
-			goto fail;
+			Serial.print(F(" FAILED!"));
+			Serial.println(F(" -- not responding after reset"));
+			return false;
 		}
 	}
 
 	if (!WiFi.ConnectToAP(WiFi_SSID, WiFi_Pass)) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't connect to the access point"));
+		return false;
 	}
 
 	Serial.println(F(" OK!"));
-	return;
-
-fail:
-	Serial.println(F(" FAIL!"));
-	SLEEP_FOREVER();
+	return true;
 }
 
-void TestServerConnection()
+boolean TestServerConnection()
 {
 	Serial.print(F("Testing Server connection ..."));
 
 	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't establish a TCP connection"));
+		return false;
 	}
 
 	if (!WiFi.Send(F("ARDUINO + ESP8266 = <3"))) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't send the test message"));
+		return false;
 	}
 
 	if (!WiFi.CloseConnection()) {
-		goto fail;
+		Serial.print(F(" FAILED!"));
+		Serial.println(F(" -- couldn't close the connection"));
+		return false;
 	}
 
 	Serial.println(F(" OK!"));
-	return;
-
-fail:
-	Serial.println(F(" FAILED!"));
-	SLEEP_FOREVER();
+	return true;
 }
 
 void SetLEDColour(int r, int g, int b)
@@ -202,9 +223,17 @@ void setup() {
 
 	SetLEDColour(255, 255, 255);
 
-	InitSDCard();
-	InitWiFi();
-	TestServerConnection();
+	if (!InitSDCard()) {
+		SLEEP_FOREVER();
+	}
+
+	if (!InitWiFi()) {
+		SLEEP_FOREVER();
+	}
+
+	if (!TestServerConnection()) {
+		SLEEP_FOREVER();
+	}
 
 	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, FALLING);
 	SetLEDColour(0, 255, 0);
