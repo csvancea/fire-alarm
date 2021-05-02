@@ -45,61 +45,61 @@ int Gas_Value;
 
 boolean InitSDCard()
 {
-	Serial.print(F("Initializing SDCard ..."));
+	Serial.print(F("Initializing SDCard ... "));
 	if (!SD.begin(PIN_SPI_SS)) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- make sure you've inserted a card"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(make sure you've inserted a card)"));
 		return false;
 	}
-	Serial.println(F(" OK!"));
+	Serial.println(F("OK!"));
 
 
-	Serial.print(F("Reading configuration file ..."));
+	Serial.print(F("Reading configuration file ... "));
 
 	IniFile config("/FIRE-A~1/NET-CO~1.INI", FILE_READ);
 	if (!config.open()) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't open config file: /fire-alarm/net-config.ini"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't open config file: /fire-alarm/net-config.ini)"));
 		return false;
 	}
 
 	if (!config.getValue("wifi", "ssid", WiFi_SSID, sizeof(WiFi_SSID))) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't read Wi-Fi SSID"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't read Wi-Fi SSID)"));
 		return false;
 	}
 
 	if (!config.getValue("wifi", "pass", WiFi_Pass, sizeof(WiFi_Pass))) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't read Wi-Fi password"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't read Wi-Fi password)"));
 		return false;
 	}
 
 	if (!config.getValue("server", "host", Server_Host, sizeof(Server_Host))) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't read server host"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't read server host)"));
 		return false;
 	}
 
 	if (!config.getValue("server", "port", Server_GUID, sizeof(Server_GUID))) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't read server port"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't read server port)"));
 		return false;
 	}
 	Server_Port = strtoul(Server_GUID, NULL, 10);
 	if (Server_Port < 1 || Server_Port > 65535) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- invalid server port"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(invalid server port)"));
 		return false;
 	}
 
 	if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_GUID))) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't read server GUID"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't read server GUID)"));
 		return false;
 	}
 
-	Serial.println(F(" OK!"));
+	Serial.println(F("OK!"));
 	config.close();
 	SD.end();
 	return true;
@@ -107,23 +107,23 @@ boolean InitSDCard()
 
 boolean InitWiFi()
 {
-	Serial.print(F("Initializing Wi-Fi ..."));
+	Serial.print(F("Initializing Wi-Fi ... "));
 
 	if (!WiFi.IsInitialized()) {
 		/* Wait 5 seconds for the module to initialize */
 		delay(5000);
 
 		if (!WiFi.IsInitialized()) {
-			Serial.print(F(" FAILED!"));
-			Serial.println(F(" -- not responding"));
+			Serial.print(F("FAILED! "));
+			Serial.println(F("(ESP8266 not responding)"));
 			return false;
 		}
 	}
 
 	/* Reset just in case */
 	if (!WiFi.Reset()) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't reset"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't reset)"));
 		return false;
 	}
 
@@ -132,25 +132,25 @@ boolean InitWiFi()
 		delay(5000);
 
 		if (!WiFi.IsInitialized()) {
-			Serial.print(F(" FAILED!"));
-			Serial.println(F(" -- not responding after reset"));
+			Serial.print(F("FAILED! "));
+			Serial.println(F("(not responding after reset)"));
 			return false;
 		}
 	}
 
 	if (!WiFi.ConnectToAP(WiFi_SSID, WiFi_Pass)) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't connect to the access point"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't connect to the access point)"));
 		return false;
 	}
 
-	Serial.println(F(" OK!"));
+	Serial.println(F("OK!"));
 	return true;
 }
 
 boolean SendMessageToServer(const String& message)
 {
-	Serial.print(F("Sending message to server ..."));
+	Serial.print(F("Sending message to server ... "));
 
 	if (!WiFi.IsConnectedToAP()) {
 		Serial.println(F("\nLost connection to the Wi-Fi access point."));
@@ -162,24 +162,24 @@ boolean SendMessageToServer(const String& message)
 	}
 
 	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't establish a TCP connection"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't establish a TCP connection)"));
 		return false;
 	}
 
 	if (!WiFi.Send(message)) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't send the message"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't send the message)"));
 		return false;
 	}
 
 	if (!WiFi.CloseConnection()) {
-		Serial.print(F(" FAILED!"));
-		Serial.println(F(" -- couldn't close the connection"));
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't close the connection)"));
 		return false;
 	}
 
-	Serial.println(F(" OK!"));
+	Serial.println(F("OK!"));
 	return true;
 }
 
