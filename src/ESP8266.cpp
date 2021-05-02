@@ -61,7 +61,7 @@ boolean ESP8266::IsConnectedToAP()
 		return false;
 	}
 
-	return response.indexOf(F("+CWJAP")) != -1;
+	return response.indexOf(F("\r\nNo AP\r\n")) == -1;
 }
 
 boolean ESP8266::StartConnection(const char *type, const char *host, int port)
