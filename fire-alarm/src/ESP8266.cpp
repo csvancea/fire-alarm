@@ -2,217 +2,217 @@
 
 ESP8266::ESP8266(int pinRx, int pinTx, int baudrate) : _serial(pinRx, pinTx)
 {
-	_serial.begin(baudrate);
+    _serial.begin(baudrate);
 }
 
 boolean ESP8266::IsInitialized()
 {
-	return ExecuteCommand(F("AT"), F("OK"));
+    return ExecuteCommand(F("AT"), F("OK"));
 }
 
 boolean ESP8266::Reset()
 {
-	if (!ExecuteCommand(F("AT+RST"), F("OK"))) {
-		return false;
-	}
+    if (!ExecuteCommand(F("AT+RST"), F("OK"))) {
+        return false;
+    }
 
-	/* make sure we're getting "ready" message back */
-	return ReadResponse(F("ready"), NULL, 5000);
+    /* make sure we're getting "ready" message back */
+    return ReadResponse(F("ready"), NULL, 5000);
 }
 
 boolean ESP8266::SetMode(ESP8266_CWMODE mode)
 {
-	char command[16];
+    char command[16];
 
-	sprintf_P(command, PSTR("AT+CWMODE_CUR=%d"), mode);
-	return ExecuteCommand(command);
+    sprintf_P(command, PSTR("AT+CWMODE_CUR=%d"), mode);
+    return ExecuteCommand(command);
 }
 
 boolean ESP8266::ConnectToAP(const char *ssid, const char *password)
 {
-	char command[ESP8266_MAX_SSID_LEN + ESP8266_MAX_PASS_LEN + 20];
+    char command[ESP8266_MAX_SSID_LEN + ESP8266_MAX_PASS_LEN + 20];
 
-	sprintf_P(command, PSTR("AT+CWJAP=\"%s\",\"%s\""), ssid, password);
+    sprintf_P(command, PSTR("AT+CWJAP=\"%s\",\"%s\""), ssid, password);
 
-	/* Establishing a connection might take a while */
-	return ExecuteCommand(command, "OK", NULL, 10000);
+    /* Establishing a connection might take a while */
+    return ExecuteCommand(command, "OK", NULL, 10000);
 }
 
 boolean ESP8266::ConnectToAP(const __FlashStringHelper *ssid, const __FlashStringHelper *password)
 {
-	char command[ESP8266_MAX_SSID_LEN + ESP8266_MAX_PASS_LEN + 20];
+    char command[ESP8266_MAX_SSID_LEN + ESP8266_MAX_PASS_LEN + 20];
 
-	sprintf_P(command, PSTR("AT+CWJAP=\"%S\",\"%S\""), ssid, password);
+    sprintf_P(command, PSTR("AT+CWJAP=\"%S\",\"%S\""), ssid, password);
 
-	/* Establishing a connection might take a while */
-	return ExecuteCommand(command, "OK", NULL, 10000);
+    /* Establishing a connection might take a while */
+    return ExecuteCommand(command, "OK", NULL, 10000);
 }
 
 boolean ESP8266::DisconnectFromAP()
 {
-	return ExecuteCommand(F("AT+CWQAP"), F("WIFI DISCONNECT"), NULL, 5000);
+    return ExecuteCommand(F("AT+CWQAP"), F("WIFI DISCONNECT"), NULL, 5000);
 }
 
 boolean ESP8266::IsConnectedToAP()
 {
-	String response;
+    String response;
 
-	if (!ExecuteCommand(F("AT+CWJAP?"), F("OK"), &response)) {
-		return false;
-	}
+    if (!ExecuteCommand(F("AT+CWJAP?"), F("OK"), &response)) {
+        return false;
+    }
 
-	return response.indexOf(F("\r\nNo AP\r\n")) == -1;
+    return response.indexOf(F("\r\nNo AP\r\n")) == -1;
 }
 
 boolean ESP8266::StartConnection(const char *type, const char *host, int port)
 {
-	char command[ESP8266_MAX_HOST_LEN + 32];
+    char command[ESP8266_MAX_HOST_LEN + 32];
 
-	sprintf_P(command, PSTR("AT+CIPSTART=\"%s\",\"%s\",%d"), type, host, port);
-	return ExecuteCommand(command, "OK", NULL, 5000);
+    sprintf_P(command, PSTR("AT+CIPSTART=\"%s\",\"%s\",%d"), type, host, port);
+    return ExecuteCommand(command, "OK", NULL, 5000);
 }
 
 boolean ESP8266::StartConnection(const __FlashStringHelper *type, const __FlashStringHelper *host, int port)
 {
-	char command[ESP8266_MAX_HOST_LEN + 32];
+    char command[ESP8266_MAX_HOST_LEN + 32];
 
-	sprintf_P(command, PSTR("AT+CIPSTART=\"%S\",\"%S\",%d"), type, host, port);
-	return ExecuteCommand(command, "OK", NULL, 5000);
+    sprintf_P(command, PSTR("AT+CIPSTART=\"%S\",\"%S\",%d"), type, host, port);
+    return ExecuteCommand(command, "OK", NULL, 5000);
 }
 
 boolean ESP8266::StartConnection(const String& type, const String& host, int port)
 {
-	return StartConnection(type.c_str(), host.c_str(), port);
+    return StartConnection(type.c_str(), host.c_str(), port);
 }
 
 boolean ESP8266::CloseConnection()
 {
-	return ExecuteCommand(F("AT+CIPCLOSE"), F("OK"));
+    return ExecuteCommand(F("AT+CIPCLOSE"), F("OK"));
 }
 
 boolean ESP8266::Send(const char* buffer, size_t size)
 {
-	char command[24];
+    char command[24];
 
-	sprintf_P(command, PSTR("AT+CIPSEND=%u"), size);
-	if (!ExecuteCommand(command, "OK", NULL, 10000)) {
-		return false;
-	}
+    sprintf_P(command, PSTR("AT+CIPSEND=%u"), size);
+    if (!ExecuteCommand(command, "OK", NULL, 10000)) {
+        return false;
+    }
 
-	_serial.write(buffer, size);
-	return ReadResponse(F("SEND OK"), NULL, 10000, ESP8266_FORCE_COMMAND_ECHO);
+    _serial.write(buffer, size);
+    return ReadResponse(F("SEND OK"), NULL, 10000, ESP8266_FORCE_COMMAND_ECHO);
 }
 
 boolean ESP8266::Send(const char *string)
 {
-	return Send(string, strlen(string));
+    return Send(string, strlen(string));
 }
 
 boolean ESP8266::Send(const String& string)
 {
-	return Send(string.c_str(), string.length());
+    return Send(string.c_str(), string.length());
 }
 
 boolean ESP8266::ExecuteCommand(const char *command, const char *expectedResponse, String *response, unsigned long timeout, boolean echo)
 {
-	/* discard any leftover */
-	while (_serial.available()) {
-		_serial.read();
-	}
+    /* discard any leftover */
+    while (_serial.available()) {
+        _serial.read();
+    }
 
-	_serial.println(command);
-	return ReadResponse(expectedResponse, response, timeout, ESP8266_FORCE_COMMAND_ECHO || echo);
+    _serial.println(command);
+    return ReadResponse(expectedResponse, response, timeout, ESP8266_FORCE_COMMAND_ECHO || echo);
 }
 
 boolean ESP8266::ExecuteCommand(const __FlashStringHelper *command, const __FlashStringHelper *expectedResponse, String* response, unsigned long timeout, boolean echo)
 {
-	/* discard any leftover */
-	while (_serial.available()) {
-		_serial.read();
-	}
+    /* discard any leftover */
+    while (_serial.available()) {
+        _serial.read();
+    }
 
-	_serial.println(command);
-	return ReadResponse(expectedResponse, response, timeout, ESP8266_FORCE_COMMAND_ECHO || echo);
+    _serial.println(command);
+    return ReadResponse(expectedResponse, response, timeout, ESP8266_FORCE_COMMAND_ECHO || echo);
 }
 
 boolean ESP8266::ExecuteCommand(const String& command, const String& expectedResponse, String* response, unsigned long timeout, boolean echo)
 {
-	return ExecuteCommand(command.c_str(), expectedResponse.c_str(), response, timeout, echo);
+    return ExecuteCommand(command.c_str(), expectedResponse.c_str(), response, timeout, echo);
 }
 
 boolean ESP8266::ReadResponse(const char *expectedResponse, String *response, unsigned long timeout, boolean echo, boolean flash)
 {
-	unsigned long oldTimeout = _serial.getTimeout();
-	unsigned long waitUntil = millis() + timeout;
-	boolean status;
-	String output;
-	int (*cmp)(const char*, const char*);
+    unsigned long oldTimeout = _serial.getTimeout();
+    unsigned long waitUntil = millis() + timeout;
+    boolean status;
+    String output;
+    int (*cmp)(const char*, const char*);
 
-	if (flash) {
-		cmp = strcmp_P;
-	}
-	else {
-		cmp = strcmp;
-	}
+    if (flash) {
+        cmp = strcmp_P;
+    }
+    else {
+        cmp = strcmp;
+    }
 
-	_serial.setTimeout(timeout);
-	while (1) {
-		output = _serial.readStringUntil('\n');
-		output.trim();
+    _serial.setTimeout(timeout);
+    while (1) {
+        output = _serial.readStringUntil('\n');
+        output.trim();
 
-		if (echo) {
-			Serial.println(output);
-		}
+        if (echo) {
+            Serial.println(output);
+        }
 
-		if (response) {
-			*response += output + F("\r\n");
-		}
+        if (response) {
+            *response += output + F("\r\n");
+        }
 
-		if (cmp(output.c_str(), expectedResponse) == 0) {
-			/* successful command */
-			status = true;
-			break;
-		}
-		if (strcmp_P(output.c_str(), PSTR("FAIL")) == 0 || strcmp_P(output.c_str(), PSTR("ERROR")) == 0) {
-			/* failed command */
-			status = false;
-			break;
-		}
-		if (waitUntil < millis()) {
-			/* no response */
-			status = false;
+        if (cmp(output.c_str(), expectedResponse) == 0) {
+            /* successful command */
+            status = true;
+            break;
+        }
+        if (strcmp_P(output.c_str(), PSTR("FAIL")) == 0 || strcmp_P(output.c_str(), PSTR("ERROR")) == 0) {
+            /* failed command */
+            status = false;
+            break;
+        }
+        if (waitUntil < millis()) {
+            /* no response */
+            status = false;
 
-			if (echo) {
-				Serial.println(F("TIMEOUT"));
-			}
+            if (echo) {
+                Serial.println(F("TIMEOUT"));
+            }
 
-			if (response) {
-				*response += F("TIMEOUT");
-				*response += F("\r\n");
-			}
-			break;
-		}
-	}
-	_serial.setTimeout(oldTimeout);
+            if (response) {
+                *response += F("TIMEOUT");
+                *response += F("\r\n");
+            }
+            break;
+        }
+    }
+    _serial.setTimeout(oldTimeout);
 
-	if (response) {
-		response->trim();
-	}
+    if (response) {
+        response->trim();
+    }
 
-	/* discard any leftover */
-	while (_serial.available()) {
-		_serial.read();
-	}
+    /* discard any leftover */
+    while (_serial.available()) {
+        _serial.read();
+    }
 
-	return status;
+    return status;
 }
 
 boolean ESP8266::ReadResponse(const __FlashStringHelper *expectedResponse, String* response, unsigned long timeout, boolean echo)
 {
-	return ReadResponse(reinterpret_cast<const char *>(expectedResponse), response, timeout, echo, true);
+    return ReadResponse(reinterpret_cast<const char *>(expectedResponse), response, timeout, echo, true);
 }
 
 boolean ESP8266::ReadResponse(const String& expectedResponse, String* response, unsigned long timeout, boolean echo)
 {
-	return ReadResponse(expectedResponse.c_str(), response, timeout, echo);
+    return ReadResponse(expectedResponse.c_str(), response, timeout, echo);
 }

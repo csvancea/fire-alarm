@@ -5,7 +5,7 @@
 
 class AsyncADC {
 public:
-	AsyncADC(int pin);
+    AsyncADC(int pin);
 	void SetPin(int pin);
 
 	void Start();
