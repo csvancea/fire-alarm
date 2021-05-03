@@ -2,6 +2,7 @@
 #include <SD.h>
 #include <IniFile.h>
 
+#include "src/AsyncADC.h"
 #include "src/ESP8266.h"
 
 #define PIN_ESP8266_RX 4
@@ -48,6 +49,9 @@ unsigned long Server_LastTime;
 volatile boolean Flame_Detected;
 volatile boolean Gas_Detected;
 volatile uint8_t Sensor_State;
+int Gas_Value;
+
+AsyncADC Gas_ADC(PIN_MQ2_GAS_A);
 
 boolean InitSDCard()
 {
@@ -212,7 +216,13 @@ void GasInterrupt()
 
 	/* gas sensor and buzzer are active on LOW */
 	if (gasSensor == LOW) {
-		Gas_Detected = true;
+		if (!Gas_Detected) {
+			Gas_Detected = true;
+
+			/* start an async analog to digital conversion */
+			/* must exit the ISR fast */
+			Gas_ADC.Start();
+		}
 		Sensor_State |= (1 << SENSOR_GAS);
 	}
 	else {
@@ -245,7 +255,6 @@ boolean SendNotification()
 	/* Gas sensor interval:     0-1023 = 10 bits of data */
 
 	/* VVVVVVVVVVGF <- LSB */
-	int Gas_Value = analogRead(PIN_MQ2_GAS_A);
 	int encoded = (Gas_Value & 1023) << 2 | (Gas_Detected & 1) << 1 | (Flame_Detected & 1);
 
 	/* Send as hex string */
@@ -297,6 +306,15 @@ void loop() {
 	int sendRet = -1;
 
 	if (Flame_Detected || Gas_Detected) {
+		if (Gas_Detected) {
+			/* retrieve old gas value (above the threshold at the time of detection) */
+			Gas_Value = Gas_ADC.Get();
+		}
+		else {
+			/* sensor didnt pick any smoke; retrieve current gas value */
+			Gas_Value = analogRead(PIN_MQ2_GAS_A);
+		}
+
 		sendRet = SendNotification();
 
 		/* reset detection status only if we've notified the user via Wi-Fi */
@@ -307,6 +325,7 @@ void loop() {
 	}
 	else if (Server_LastTime == 0 || ms - Server_LastTime > 1000UL * 60 * 10) {
 		/* Send heartbeat each 10 mins */
+		Gas_Value = analogRead(PIN_MQ2_GAS_A);
 		sendRet = SendNotification();
 		Server_LastTime = ms;
 	}
