@@ -5,6 +5,8 @@
 #include "src/AsyncADC.h"
 #include "src/ESP8266.h"
 
+#define GUID_LEN       36
+
 #define PIN_ESP8266_RX 4
 #define PIN_ESP8266_TX 5
 
@@ -108,6 +110,11 @@ boolean InitSDCard()
 		Serial.println(F("(couldn't read server GUID)"));
 		return false;
 	}
+	if (strlen(Server_GUID) != GUID_LEN) {
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(invalid GUID - expected " __STRINGIFY(GUID_LEN) " length string)"));
+		return false;
+	}
 
 	Serial.println(F("OK!"));
 	config.close();
@@ -174,6 +181,12 @@ boolean SendMessageToServer(const String& message)
 	if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
 		Serial.print(F("FAILED! "));
 		Serial.println(F("(couldn't establish a TCP connection)"));
+		return false;
+	}
+
+	if (!WiFi.Send(Server_GUID)) {
+		Serial.print(F("FAILED! "));
+		Serial.println(F("(couldn't send GUID)"));
 		return false;
 	}
 
