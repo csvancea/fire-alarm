@@ -24,9 +24,15 @@
     <ClInclude Include="src\ESP8266.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\AsyncADC.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ESP8266.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AsyncADC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
