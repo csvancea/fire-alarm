@@ -4,7 +4,9 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Arduino files
-__vm/
+fire-alarm/__vm/
+fire-alarm/Debug/
+fire-alarm/Release/
 
 # User-specific files
 *.rsuser
