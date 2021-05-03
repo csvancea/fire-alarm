@@ -4,16 +4,22 @@
 
 #include "src/ESP8266.h"
 
-#define PIN_ESP8266_RX 3
-#define PIN_ESP8266_TX 4
+#define PIN_ESP8266_RX 4
+#define PIN_ESP8266_TX 5
 
-#define PIN_MQ2_GAS    A5
-#define PIN_IR_FLAME   2
+#define PIN_MQ2_GAS_A  A5
+#define PIN_MQ2_GAS_D  2
+#define PIN_IR_FLAME   3
 #define PIN_BUZZER     9
 
-#define PIN_RGBLED_R   5
-#define PIN_RGBLED_G   6
-#define PIN_RGBLED_B   7
+#define PIN_RGBLED_R   6
+#define PIN_RGBLED_G   7
+#define PIN_RGBLED_B   8
+
+enum {
+	SENSOR_FLAME,
+	SENSOR_GAS
+};
 
 enum {
 	ERROR_OK,
@@ -40,8 +46,8 @@ unsigned short Server_Port;
 unsigned long Server_LastTime;
 
 volatile boolean Flame_Detected;
-boolean Gas_Detected;
-int Gas_Value;
+volatile boolean Gas_Detected;
+volatile uint8_t Sensor_State;
 
 boolean InitSDCard()
 {
@@ -200,13 +206,20 @@ void SetLEDColour(int error)
 	}
 }
 
-void ReadGasSensor()
+void GasInterrupt()
 {
-	Gas_Value = analogRead(PIN_MQ2_GAS);
+	int gasSensor = digitalRead(PIN_MQ2_GAS_D);
 
-	if (Gas_Value > 500) {
+	/* gas sensor and buzzer are active on LOW */
+	if (gasSensor == LOW) {
 		Gas_Detected = true;
+		Sensor_State |= (1 << SENSOR_GAS);
 	}
+	else {
+		Sensor_State &= ~(1 << SENSOR_GAS);
+	}
+
+	digitalWrite(PIN_BUZZER, !Sensor_State);
 }
 
 void FlameInterrupt()
@@ -216,8 +229,13 @@ void FlameInterrupt()
 	/* flame sensor and buzzer are active on LOW */
 	if (flameSensor == LOW) {
 		Flame_Detected = true;
+		Sensor_State |= (1 << SENSOR_FLAME);
 	}
-	digitalWrite(PIN_BUZZER, flameSensor);
+	else {
+		Sensor_State &= ~(1 << SENSOR_FLAME);
+	}
+
+	digitalWrite(PIN_BUZZER, !Sensor_State);
 }
 
 boolean SendNotification()
@@ -227,6 +245,7 @@ boolean SendNotification()
 	/* Gas sensor interval:     0-1023 = 10 bits of data */
 
 	/* VVVVVVVVVVGF <- LSB */
+	int Gas_Value = analogRead(PIN_MQ2_GAS_A);
 	int encoded = (Gas_Value & 1023) << 2 | (Gas_Detected & 1) << 1 | (Flame_Detected & 1);
 
 	/* Send as hex string */
@@ -253,6 +272,7 @@ void setup() {
 	Serial.println(F("\n-------- BOOT --------\n"));
 
 	/* Begin initialization code */
+	attachInterrupt(digitalPinToInterrupt(PIN_MQ2_GAS_D), GasInterrupt, CHANGE);
 	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, CHANGE);
 
 	if (!InitSDCard()) {
@@ -275,8 +295,6 @@ void setup() {
 void loop() {
 	unsigned long ms = millis();
 	int sendRet = -1;
-
-	ReadGasSensor();
 
 	if (Flame_Detected || Gas_Detected) {
 		sendRet = SendNotification();
