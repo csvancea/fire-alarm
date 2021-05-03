@@ -336,8 +336,8 @@ void loop() {
 			Gas_Detected = false;
 		}
 	}
-	else if (Server_LastTime == 0 || ms - Server_LastTime > 1000UL * 60 * 10) {
-		/* Send heartbeat each 10 mins */
+	else if (Server_LastTime == 0 || ms - Server_LastTime > 1000UL * 60) {
+		/* Send heartbeat each minute */
 		Gas_Value = analogRead(PIN_MQ2_GAS_A);
 		sendRet = SendNotification();
 		Server_LastTime = ms;
