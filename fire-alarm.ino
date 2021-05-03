@@ -211,7 +211,13 @@ void ReadGasSensor()
 
 void FlameInterrupt()
 {
-	Flame_Detected = true;
+	int flameSensor = digitalRead(PIN_IR_FLAME);
+
+	/* flame sensor and buzzer are active on LOW */
+	if (flameSensor == LOW) {
+		Flame_Detected = true;
+	}
+	digitalWrite(PIN_BUZZER, flameSensor);
 }
 
 boolean SendNotification()
@@ -230,17 +236,24 @@ boolean SendNotification()
 // the setup function runs once when you press reset or power the board
 void setup() {
 	Serial.begin(9600);
+
+	pinMode(PIN_RGBLED_R, OUTPUT);
+	pinMode(PIN_RGBLED_G, OUTPUT);
+	pinMode(PIN_RGBLED_B, OUTPUT);
+	SetLEDColour(255, 255, 255);
+
+	pinMode(PIN_BUZZER, OUTPUT);
+	delay(50);
+	digitalWrite(PIN_BUZZER, HIGH);
+
 	while (!Serial) {
 		delay(1000);
 	}
 
 	Serial.println(F("\n-------- BOOT --------\n"));
 
-	pinMode(PIN_RGBLED_R, OUTPUT);
-	pinMode(PIN_RGBLED_G, OUTPUT);
-	pinMode(PIN_RGBLED_B, OUTPUT);
-
-	SetLEDColour(255, 255, 255);
+	/* Begin initialization code */
+	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, CHANGE);
 
 	if (!InitSDCard()) {
 		SLEEP_FOREVER(ERROR_SDCARD);
@@ -254,9 +267,7 @@ void setup() {
 		SLEEP_FOREVER(ERROR_SERVER);
 	}
 
-	attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, FALLING);
 	SetLEDColour(ERROR_OK);
-
 	Serial.println(F("\n-------- DONE --------\n"));
 }
 
