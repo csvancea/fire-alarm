@@ -8,6 +8,11 @@ fire-alarm/__vm/
 fire-alarm/Debug/
 fire-alarm/Release/
 
+# Simple server files
+simple-server/build/
+simple-server/bin/
+simple-server/obj/
+
 # User-specific files
 *.rsuser
 *.suo
