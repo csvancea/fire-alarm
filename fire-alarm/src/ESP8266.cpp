@@ -90,7 +90,7 @@ boolean ESP8266::CloseConnection()
     return ExecuteCommand(F("AT+CIPCLOSE"), F("OK"));
 }
 
-boolean ESP8266::Send(const char* buffer, size_t size)
+boolean ESP8266::Send(const char* buffer, size_t size, boolean flash)
 {
     char command[24];
 
@@ -99,7 +99,15 @@ boolean ESP8266::Send(const char* buffer, size_t size)
         return false;
     }
 
-    _serial.write(buffer, size);
+    if (flash) {
+        for (; size != 0; --size, ++buffer) {
+            _serial.write(pgm_read_byte(buffer));
+        }
+    }
+    else {
+        _serial.write(buffer, size);
+    }
+
     return ReadResponse(F("SEND OK"), NULL, 10000, ESP8266_FORCE_COMMAND_ECHO);
 }
 
@@ -108,9 +116,75 @@ boolean ESP8266::Send(const char *string)
     return Send(string, strlen(string));
 }
 
+boolean ESP8266::Send(const __FlashStringHelper *string)
+{
+    return Send(reinterpret_cast<const char*>(string), strlen_P(reinterpret_cast<const char *>(string)), true);
+}
+
 boolean ESP8266::Send(const String& string)
 {
     return Send(string.c_str(), string.length());
+}
+
+boolean ESP8266::Post(const char *host, int port, const char *endpoint, const char *data, const char *cookies)
+{
+    boolean ret = true;
+    unsigned long timeout;
+    char buf[ESP8266_MAX_HOST_LEN + 32];
+    
+    buf[sizeof(buf) - 1] = 0;
+
+    if (!StartConnection(F("TCP"), host, port)) {
+        return false;
+    }
+
+    snprintf_P(buf, sizeof(buf) - 1, PSTR("POST %s HTTP/1.0\r\n"), endpoint);
+    if (!Send(buf)) {
+        ret = false;
+        goto close;
+    }
+
+    snprintf_P(buf, sizeof(buf) - 1, PSTR("Host: %s\r\n"), host);
+    if (!Send(buf)) {
+        ret = false;
+        goto close;
+    }
+
+    if (cookies) {
+        snprintf_P(buf, sizeof(buf) - 1, PSTR("Cookie: %s\r\n"), cookies);
+        if (!Send(buf)) {
+            ret = false;
+            goto close;
+        }
+    }
+
+    if (!Send(F("Content-Type: application/x-www-form-urlencoded\r\n"))) {
+        ret = false;
+        goto close;
+    }
+
+    snprintf_P(buf, sizeof(buf) - 1, PSTR("Content-Length: %d\r\n\r\n"), strlen(data));
+    if (!Send(buf)) {
+        ret = false;
+        goto close;
+    }
+    
+    if (!Send(data)) {
+        ret = false;
+        goto close;
+    }
+
+    /* assume everything went fine if we get to this point */
+    timeout = _serial.getTimeout();
+    _serial.readBytesUntil('\n', buf, sizeof(buf));
+    while (_serial.available()) {
+        _serial.read();
+    }
+    _serial.setTimeout(timeout);
+
+close:
+    CloseConnection();
+    return ret;
 }
 
 boolean ESP8266::ExecuteCommand(const char *command, const char *expectedResponse, String *response, unsigned long timeout, boolean echo)
