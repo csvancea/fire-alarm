@@ -44,7 +44,8 @@ static const uint8_t Error_Colours[ERROR_COUNT][3] PROGMEM = {
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
 char WiFi_SSID[ESP8266_MAX_SSID_LEN], WiFi_Pass[ESP8266_MAX_PASS_LEN];
-char Server_Host[ESP8266_MAX_HOST_LEN], Server_GUID[64];
+char Server_Host[ESP8266_MAX_HOST_LEN], Server_Endpoint[32], Server_Cookie[64] = "guid=";
+char *Server_GUID = Server_Cookie + sizeof("guid=") - 1;
 unsigned short Server_Port;
 unsigned long Server_LastTime;
 
@@ -93,19 +94,25 @@ boolean InitSDCard()
         return false;
     }
 
-    if (!config.getValue("server", "port", Server_GUID, sizeof(Server_GUID))) {
+    if (!config.getValue("server", "port", Server_Endpoint, sizeof(Server_Endpoint))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server port)"));
         return false;
     }
-    Server_Port = strtoul(Server_GUID, NULL, 10);
+    Server_Port = strtoul(Server_Endpoint, NULL, 10);
     if (Server_Port < 1 || Server_Port > 65535) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(invalid server port)"));
         return false;
     }
 
-    if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_GUID))) {
+    if (!config.getValue("server", "endpoint", Server_Endpoint, sizeof(Server_Endpoint))) {
+        Serial.print(F("FAILED! "));
+        Serial.println(F("(couldn't read server endpoint)"));
+        return false;
+    }
+
+    if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_Cookie) - sizeof("guid="))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server GUID)"));
         return false;
@@ -165,9 +172,9 @@ boolean InitWiFi()
     return true;
 }
 
-boolean SendMessageToServer(const String& message)
+boolean PostDataToServer(const String& data)
 {
-    Serial.print(F("Sending message to server ... "));
+    Serial.print(F("Posting data to server ... "));
 
     if (!WiFi.IsConnectedToAP()) {
         Serial.println(F("\nLost connection to the Wi-Fi access point."));
@@ -178,27 +185,9 @@ boolean SendMessageToServer(const String& message)
         }
     }
 
-    if (!WiFi.StartConnection(F("TCP"), Server_Host, Server_Port)) {
+    if (!WiFi.Post(Server_Host, Server_Port, Server_Endpoint, data.c_str(), Server_Cookie)) {
         Serial.print(F("FAILED! "));
-        Serial.println(F("(couldn't establish a TCP connection)"));
-        return false;
-    }
-
-    if (!WiFi.Send(Server_GUID)) {
-        Serial.print(F("FAILED! "));
-        Serial.println(F("(couldn't send GUID)"));
-        return false;
-    }
-
-    if (!WiFi.Send(message)) {
-        Serial.print(F("FAILED! "));
-        Serial.println(F("(couldn't send the message)"));
-        return false;
-    }
-
-    if (!WiFi.CloseConnection()) {
-        Serial.print(F("FAILED! "));
-        Serial.println(F("(couldn't close the connection)"));
+        Serial.println(F("(POST request failed)"));
         return false;
     }
 
@@ -263,15 +252,17 @@ void FlameInterrupt()
 
 boolean SendNotification()
 {
-    /* Flame detected interval: 0-1    = 1 bit of data */
-    /* Gas detected interval:   0-1    = 1 bit of data */
-    /* Gas sensor interval:     0-1023 = 10 bits of data */
+    char buf[50];
 
-    /* VVVVVVVVVVGF <- LSB */
-    int encoded = (Gas_Value & 1023) << 2 | (Gas_Detected & 1) << 1 | (Flame_Detected & 1);
+    sprintf_P(buf, PSTR("type=data&gas_v=%d"), Gas_Value);
+    if (Gas_Detected) {
+        strcat_P(buf, PSTR("&gas=1"));
+    }
+    if (Flame_Detected) {
+        strcat_P(buf, PSTR("&flame=1"));
+    }
 
-    /* Send as hex string */
-    return SendMessageToServer(String(encoded, HEX));
+    return PostDataToServer(buf);
 }
 
 // the setup function runs once when you press reset or power the board
@@ -305,7 +296,7 @@ void setup() {
         SLEEP_FOREVER(ERROR_WIFI);
     }
 
-    if (!SendMessageToServer(F("ARDUINO + ESP8266 = <3"))) {
+    if (!PostDataToServer(F("type=init&msg=ARDUINO%20%2B%20ESP8266%20%3D%20%3C3"))) {
         SLEEP_FOREVER(ERROR_SERVER);
     }
 
