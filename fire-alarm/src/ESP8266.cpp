@@ -126,7 +126,7 @@ boolean ESP8266::Send(const String& string)
     return Send(string.c_str(), string.length());
 }
 
-boolean ESP8266::Post(const char *host, int port, const char *endpoint, const char *data, const char *cookies)
+boolean ESP8266::Post(const char *host, int port, const char *endpoint, const char *data, const char *x_api_key)
 {
     boolean ret = true;
     unsigned long timeout;
@@ -150,8 +150,8 @@ boolean ESP8266::Post(const char *host, int port, const char *endpoint, const ch
         goto close;
     }
 
-    if (cookies) {
-        snprintf_P(buf, sizeof(buf) - 1, PSTR("Cookie: %s\r\n"), cookies);
+    if (x_api_key) {
+        snprintf_P(buf, sizeof(buf) - 1, PSTR("X-API-Key: %s\r\n"), x_api_key);
         if (!Send(buf)) {
             ret = false;
             goto close;

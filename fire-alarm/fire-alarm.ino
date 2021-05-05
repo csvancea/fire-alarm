@@ -44,8 +44,7 @@ static const uint8_t Error_Colours[ERROR_COUNT][3] PROGMEM = {
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
 char WiFi_SSID[ESP8266_MAX_SSID_LEN], WiFi_Pass[ESP8266_MAX_PASS_LEN];
-char Server_Host[ESP8266_MAX_HOST_LEN], Server_Endpoint[32], Server_Cookie[64] = "guid=";
-char *Server_GUID = Server_Cookie + sizeof("guid=") - 1;
+char Server_Host[ESP8266_MAX_HOST_LEN], Server_Endpoint[32], Server_GUID[64];
 unsigned short Server_Port;
 unsigned long Server_LastTime;
 
@@ -112,7 +111,7 @@ boolean InitSDCard()
         return false;
     }
 
-    if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_Cookie) - sizeof("guid="))) {
+    if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_GUID))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server GUID)"));
         return false;
@@ -185,7 +184,7 @@ boolean PostDataToServer(const String& data)
         }
     }
 
-    if (!WiFi.Post(Server_Host, Server_Port, Server_Endpoint, data.c_str(), Server_Cookie)) {
+    if (!WiFi.Post(Server_Host, Server_Port, Server_Endpoint, data.c_str(), Server_GUID)) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(POST request failed)"));
         return false;

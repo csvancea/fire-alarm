@@ -41,7 +41,7 @@ public:
     boolean Send(const __FlashStringHelper *string);
     boolean Send(const String& string);
 
-    boolean Post(const char *host, int port, const char *endpoint, const char *data, const char *cookies = NULL);
+    boolean Post(const char *host, int port, const char *endpoint, const char *data, const char *x_api_key = NULL);
 
     boolean ExecuteCommand(const char *command, const char *expectedResponse = "OK", String *response = NULL, unsigned long timeout = ESP8266_DEFAULT_COMMAND_TIMEOUT, boolean echo = false);
     boolean ExecuteCommand(const __FlashStringHelper *command, const __FlashStringHelper *expectedResponse, String *response = NULL, unsigned long timeout = ESP8266_DEFAULT_COMMAND_TIMEOUT, boolean echo = false);
