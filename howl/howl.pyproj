@@ -18,6 +18,11 @@
     <Name>howl</Name>
     <RootNamespace>howl</RootNamespace>
     <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
+    <PythonRunWebServerCommandEnvironment>SERVER_HOST=0.0.0.0
+SERVER_PORT=7331</PythonRunWebServerCommandEnvironment>
+    <PythonDebugWebServerCommandEnvironment>SERVER_HOST=0.0.0.0
+SERVER_PORT=7331</PythonDebugWebServerCommandEnvironment>
+    <WebBrowserPort>7331</WebBrowserPort>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -67,8 +72,7 @@
     <Content Include="howl\static\scripts\respond.js" />
     <Content Include="howl\static\scripts\respond.min.js" />
     <Content Include="howl\static\scripts\_references.js" />
-    <Content Include="howl\templates\about.html" />
-    <Content Include="howl\templates\contact.html" />
+    <Content Include="howl\templates\list.html" />
     <Content Include="howl\templates\index.html" />
     <Content Include="howl\templates\layout.html" />
   </ItemGroup>
