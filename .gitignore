@@ -10,6 +10,7 @@ fire-alarm/Release/
 
 # Flask files
 howl/env/
+howl/howl/app.db
 
 # User-specific files
 *.rsuser

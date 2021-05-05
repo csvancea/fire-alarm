@@ -1,1 +1,3 @@
 Flask~=1.1
+sqlalchemy
+flask_sqlalchemy

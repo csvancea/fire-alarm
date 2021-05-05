@@ -28,6 +28,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="howl\api.py" />
+    <Compile Include="howl\config.py" />
+    <Compile Include="howl\models.py" />
     <Compile Include="runserver.py" />
     <Compile Include="howl\__init__.py" />
     <Compile Include="howl\views.py" />

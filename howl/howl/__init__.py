@@ -3,6 +3,12 @@ The flask application package.
 """
 
 from flask import Flask
-app = Flask(__name__)
+from flask_sqlalchemy import SQLAlchemy
 
+app = Flask(__name__)
+app.config.from_object('howl.config.Config')
+
+db = SQLAlchemy(app)
+
+import howl.api
 import howl.views
