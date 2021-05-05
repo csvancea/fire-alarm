@@ -24,11 +24,29 @@
     </thead>
     <tbody>
         {% for m in pagination.items %}
-        <tr class="{% if m.gas_detected or m.flame_detected %} text-danger {% endif %}">
+        <tr class="{% if m.gas_detected or m.flame_detected %} text-danger warning {% endif %}">
             <td>{{ m.id }}</td>
-            <td>{{ m.gas_value }}</td>
-            <td>{{ m.gas_detected }}</td>
-            <td>{{ m.flame_detected }}</td>
+            <td>
+                {% if m.gas_detected %}
+                <strong>{{ m.gas_value }}</strong>
+                {% else %}
+                {{ m.gas_value }}
+                {% endif %}
+            </td>
+            <td>
+                {% if m.gas_detected %}
+                <strong>Yes</strong>
+                {% else %}
+                No
+                {% endif %}
+            </td>
+            <td>
+                {% if m.flame_detected %}
+                <strong>Yes</strong>
+                {% else %}
+                No
+                {% endif %}
+            </td>
             <td>{{ m.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
         </tr>
         {% endfor %}
