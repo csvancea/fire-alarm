@@ -259,9 +259,9 @@ void FlameInterrupt()
 
 boolean SendNotification()
 {
-    char buf[50];
+    char buf[32];
 
-    sprintf_P(buf, PSTR("type=data&gas_v=%d"), Gas_Value);
+    sprintf_P(buf, PSTR("gas_v=%d"), Gas_Value);
     if (Gas_Detected) {
         strcat_P(buf, PSTR("&gas=1"));
     }
@@ -303,7 +303,7 @@ void setup() {
         SLEEP_FOREVER(ERROR_WIFI);
     }
 
-    if (!PostDataToServer(F("type=init&msg=ARDUINO%20%2B%20ESP8266%20%3D%20%3C3"))) {
+    if (!SendNotification()) {
         SLEEP_FOREVER(ERROR_SERVER);
     }
 

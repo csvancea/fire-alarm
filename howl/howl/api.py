@@ -18,6 +18,10 @@ def add_measurement():
     gas_detected = int(request.form.get('gas', '0'))
     flame_detected = int(request.form.get('flame', '0'))
 
+    # ignore first message after alarm boots up
+    if gas_value == 0:
+        return {'id': '0'}
+
     measurement = Measurement(
         sensor_guid=guid,
         gas_value=gas_value,
