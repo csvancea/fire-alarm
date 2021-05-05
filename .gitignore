@@ -8,6 +8,9 @@ fire-alarm/__vm/
 fire-alarm/Debug/
 fire-alarm/Release/
 
+# Flask files
+howl/env/
+
 # User-specific files
 *.rsuser
 *.suo
