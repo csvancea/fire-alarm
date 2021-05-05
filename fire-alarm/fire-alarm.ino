@@ -57,6 +57,8 @@ AsyncADC Gas_ADC(PIN_MQ2_GAS_A);
 
 boolean InitSDCard()
 {
+    char buf[80];
+
     Serial.print(F("Initializing SDCard ... "));
     if (!SD.begin(PIN_SPI_SS)) {
         Serial.print(F("FAILED! "));
@@ -75,25 +77,31 @@ boolean InitSDCard()
         return false;
     }
 
-    if (!config.getValue("wifi", "ssid", WiFi_SSID, sizeof(WiFi_SSID))) {
+    if (!config.validate(buf, sizeof(buf))) {
+        Serial.print(F("FAILED! "));
+        Serial.println(F("(lines are too long)"));
+        return false;
+    }
+
+    if (!config.getValue("wifi", "ssid", buf, sizeof(buf), WiFi_SSID, sizeof(WiFi_SSID))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read Wi-Fi SSID)"));
         return false;
     }
 
-    if (!config.getValue("wifi", "pass", WiFi_Pass, sizeof(WiFi_Pass))) {
+    if (!config.getValue("wifi", "pass", buf, sizeof(buf), WiFi_Pass, sizeof(WiFi_Pass))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read Wi-Fi password)"));
         return false;
     }
 
-    if (!config.getValue("server", "host", Server_Host, sizeof(Server_Host))) {
+    if (!config.getValue("server", "host", buf, sizeof(buf), Server_Host, sizeof(Server_Host))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server host)"));
         return false;
     }
 
-    if (!config.getValue("server", "port", Server_Endpoint, sizeof(Server_Endpoint))) {
+    if (!config.getValue("server", "port", buf, sizeof(buf), Server_Endpoint, sizeof(Server_Endpoint))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server port)"));
         return false;
@@ -105,13 +113,13 @@ boolean InitSDCard()
         return false;
     }
 
-    if (!config.getValue("server", "endpoint", Server_Endpoint, sizeof(Server_Endpoint))) {
+    if (!config.getValue("server", "endpoint", buf, sizeof(buf), Server_Endpoint, sizeof(Server_Endpoint))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server endpoint)"));
         return false;
     }
 
-    if (!config.getValue("server", "guid", Server_GUID, sizeof(Server_GUID))) {
+    if (!config.getValue("server", "guid", buf, sizeof(buf), Server_GUID, sizeof(Server_GUID))) {
         Serial.print(F("FAILED! "));
         Serial.println(F("(couldn't read server GUID)"));
         return false;
