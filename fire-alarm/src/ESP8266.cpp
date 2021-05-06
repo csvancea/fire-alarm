@@ -144,7 +144,7 @@ boolean ESP8266::Post(const char *host, int port, const char *endpoint, const ch
         goto close;
     }
 
-    snprintf_P(buf, sizeof(buf) - 1, PSTR("Host: %s\r\n"), host);
+    snprintf_P(buf, sizeof(buf) - 1, PSTR("Host: %s:%d\r\n"), host, port);
     if (!Send(buf)) {
         ret = false;
         goto close;
