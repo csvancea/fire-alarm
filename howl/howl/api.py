@@ -1,7 +1,8 @@
 from howl import app, db
-from flask import request
+from flask import request, url_for
 from datetime import datetime
-from howl.models import Measurement
+from howl.models import Measurement, Sensor
+import requests
 
 @app.route('/api/v1/measurement/add', methods=['POST'])
 def add_measurement():
@@ -17,6 +18,7 @@ def add_measurement():
     gas_value = int(request.form['gas_v'])
     gas_detected = int(request.form.get('gas', '0'))
     flame_detected = int(request.form.get('flame', '0'))
+    sensor = Sensor.query.filter_by(guid=guid).first()
 
     # ignore first message after alarm boots up
     if gas_value == 0:
@@ -31,5 +33,23 @@ def add_measurement():
     )
     db.session.add(measurement)
     db.session.commit()
+
+    # let the user know if sensor picked up smoke/flames
+    if sensor and sensor.push_token != '' and (gas_detected != 0 or flame_detected != 0):
+        if gas_detected != 0 and flame_detected != 0:
+            body = 'Smoke and Flames detected!'
+        elif gas_detected != 0:
+            body = 'Smoke detected!'
+        else:
+            body = 'Flames detected!'
+        body += f'\nSmoke level: {gas_value}/1023'
+
+        msg = {
+            'body': body,
+            'title': 'Fire Alarm',
+            'type': 'link',
+            'url': url_for('list', guid=guid, _external=True)
+        }
+        requests.post('https://api.pushbullet.com/v2/pushes', json=msg, headers={'Access-Token': sensor.push_token})
 
     return {'id': measurement.id}

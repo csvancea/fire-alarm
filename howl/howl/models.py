@@ -45,3 +45,25 @@ class Measurement(db.Model):
 
     def __repr__(self):
         return '<Measurement {}>'.format(self.id)
+
+class Sensor(db.Model):
+    """Data model for sensors"""
+
+    __tablename__ = 'sensors'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+    guid = db.Column(
+        db.String(36),
+        index=True,
+        unique=True,
+        nullable=False
+    )
+    push_token = db.Column(
+        db.String(64),
+        index=False,
+        unique=False,
+        nullable=False
+    )
