@@ -35,14 +35,14 @@ def add_measurement():
     db.session.commit()
 
     # let the user know if sensor picked up smoke/flames
-    if sensor and sensor.push_token != '' and (gas_detected != 0 or flame_detected != 0):
+    if app.config['SEND_NOTIFICATIONS'] and sensor and sensor.push_token != '' and (gas_detected != 0 or flame_detected != 0):
         if gas_detected != 0 and flame_detected != 0:
             body = 'Smoke and Flames detected!'
         elif gas_detected != 0:
             body = 'Smoke detected!'
         else:
             body = 'Flames detected!'
-        body += f'\nSmoke level: {gas_value}/1023'
+        body += f'\nSmoke level: {gas_value}/{app.config["MQ2_SENSOR_MAX_VALUE"]}'
 
         msg = {
             'body': body,
