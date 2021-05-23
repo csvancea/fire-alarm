@@ -68,6 +68,7 @@ boolean InitSDCard()
 
     Serial.print(F("Reading configuration file ... "));
 
+    /* DOS 8.3 short filename for: /fire-alarm/net-config.ini */
     IniFile config("/FIRE-A~1/NET-CO~1.INI", FILE_READ);
     if (!config.open()) {
         Serial.print(F("FAILED! "));
@@ -119,7 +120,7 @@ boolean InitSDCard()
 
     if (!config.getValue("server", "guid", buf, sizeof(buf), Server_GUID, sizeof(Server_GUID))) {
         Serial.print(F("FAILED! "));
-        Serial.println(F("(couldn't read server GUID)"));
+        Serial.println(F("(couldn't read device GUID)"));
         return false;
     }
     if (strlen(Server_GUID) != GUID_LEN) {
@@ -283,6 +284,7 @@ boolean SendNotification()
 // the setup function runs once when you press reset or power the board
 void setup() {
     Serial.begin(9600);
+    Serial.println(F("\n-------- BOOT --------\n"));
 
     pinMode(PIN_RGBLED_R, OUTPUT);
     pinMode(PIN_RGBLED_G, OUTPUT);
@@ -292,12 +294,6 @@ void setup() {
     pinMode(PIN_BUZZER, OUTPUT);
     delay(50);
     digitalWrite(PIN_BUZZER, HIGH);
-
-    while (!Serial) {
-        delay(1000);
-    }
-
-    Serial.println(F("\n-------- BOOT --------\n"));
 
     /* Begin initialization code */
     attachInterrupt(digitalPinToInterrupt(PIN_MQ2_GAS_D), GasInterrupt, CHANGE);
