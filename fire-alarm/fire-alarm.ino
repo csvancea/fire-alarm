@@ -39,8 +39,6 @@ static const uint8_t Error_Colours[ERROR_COUNT][3] PROGMEM = {
     {255, 0, 0},    /* Server - red */
 };
 
-#define SLEEP_FOREVER(...) while(1) { SetLEDColour(__VA_ARGS__); delay(250); SetLEDColour(0, 0, 0); delay(100); }
-
 ESP8266 WiFi(PIN_ESP8266_RX, PIN_ESP8266_TX);
 
 char WiFi_SSID[ESP8266_MAX_SSID_LEN], WiFi_Pass[ESP8266_MAX_PASS_LEN];
@@ -219,6 +217,16 @@ void SetLEDColour(int error)
     }
 }
 
+void BlinkForever(int error)
+{
+    while (1) {
+        SetLEDColour(error);
+        delay(250);
+        SetLEDColour(0, 0, 0);
+        delay(100);
+    }
+}
+
 void GasInterrupt()
 {
     int gasSensor = digitalRead(PIN_MQ2_GAS_D);
@@ -296,15 +304,15 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(PIN_IR_FLAME), FlameInterrupt, CHANGE);
 
     if (!InitSDCard()) {
-        SLEEP_FOREVER(ERROR_SDCARD);
+        BlinkForever(ERROR_SDCARD);
     }
 
     if (!InitWiFi()) {
-        SLEEP_FOREVER(ERROR_WIFI);
+        BlinkForever(ERROR_WIFI);
     }
 
     if (!SendNotification()) {
-        SLEEP_FOREVER(ERROR_SERVER);
+        BlinkForever(ERROR_SERVER);
     }
 
     SetLEDColour(ERROR_OK);
