@@ -12,3 +12,5 @@ db = SQLAlchemy(app)
 
 import howl.api
 import howl.views
+
+db.create_all()
