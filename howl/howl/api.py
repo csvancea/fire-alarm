@@ -4,6 +4,32 @@ from datetime import datetime
 from howl.models import Measurement, Sensor
 import requests
 
+@app.route('/api/v1/measurements', methods=['GET'])
+def list_measurements():
+    """Gets a list of measurements."""
+    guid = request.args['guid']
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', app.config['ENTRIES_PER_PAGE'], type=int)
+    measurements = Measurement.query.filter_by(sensor_guid=guid).order_by(Measurement.id.desc())
+    pagination = measurements.paginate(page, per_page, False)
+
+    items = []
+    for item in pagination.items:
+        measurement = {
+            'id': item.id,
+            'sensor_guid': item.sensor_guid,
+            'gas_value': item.gas_value,
+            'gas_detected': item.gas_detected,
+            'flame_detected': item.flame_detected,
+            'created': item.created
+        }
+        items.append(measurement)
+
+    return {
+        'items': items,
+        'total_count': measurements.count()
+    }
+
 @app.route('/api/v1/measurement/add', methods=['POST'])
 def add_measurement():
     """Add a measurement via POST JSON."""
