@@ -12,6 +12,7 @@
 
 <h2>Measurements for Fire Alarm: <strong>{{ guid }}</strong></h2>
 
+{% if send_notifications %}
 <div class="container">
     <form class="form-inline form-group" action="{{ url_for('list', guid=guid, page=pagination.page) }}" method="post" role="form">
         <label for="token">Enter a <a href="https://www.pushbullet.com/#settings">Pushbullet</a> access token:</label>
@@ -19,11 +20,12 @@
         <div class="btn-group">
             <button type="submit" name="token-btn" value="edit" class="btn btn-primary mb-2">{% if sensor %}Update{% else %}Set{% endif %} token</button>
             {% if sensor %}
-            <button type="submit" name="token-btn" value="delete "class="btn btn-danger mb-2">Remove token</button>
+            <button type="submit" name="token-btn" value="delete" class="btn btn-danger mb-2">Remove token</button>
             {% endif %}
         </div>
     </form>
 </div>
+{% endif %}
 
 <table class="table">
     <thead>

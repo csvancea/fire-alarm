@@ -25,7 +25,7 @@ def list():
     pagination = Measurement.query.filter_by(sensor_guid=guid).order_by(Measurement.id.desc()).paginate(page, app.config['ENTRIES_PER_PAGE'], False)
     sensor = Sensor.query.filter_by(guid=guid).first()
 
-    if request.method == 'POST':
+    if request.method == 'POST' and app.config['SEND_NOTIFICATIONS']:
         if sensor:
             sensor.push_token = request.form['token'] if request.form['token-btn'] == 'edit' else ''
         else:
@@ -46,5 +46,6 @@ def list():
         year=datetime.now().year,
         guid=guid,
         sensor=sensor,
-        pagination=pagination
+        pagination=pagination,
+        send_notifications=app.config['SEND_NOTIFICATIONS']
     )

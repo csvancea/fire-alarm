@@ -1,4 +1,5 @@
 Flask~=1.1
-sqlalchemy
-flask_sqlalchemy
+sqlalchemy~=1.4
+flask_sqlalchemy~=2.5
 requests
+markupsafe~=2.0

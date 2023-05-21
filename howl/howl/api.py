@@ -6,18 +6,23 @@ import requests
 
 @app.route('/api/v1/measurement/add', methods=['POST'])
 def add_measurement():
-    """Add a measurement via post form data."""
+    """Add a measurement via POST JSON."""
 
-    if not 'X-API-Key' in request.headers:
-        return {'error': 'X-API-Key header missing'}, 400
+    if not request.is_json:
+        return {'error': 'Data is not a JSON object'}, 400
 
-    if not 'gas_v' in request.form:
-        return {'error': 'gas_v field missing'}, 400
+    data = request.get_json()
 
-    guid = request.headers['X-API-Key']
-    gas_value = int(request.form['gas_v'])
-    gas_detected = int(request.form.get('gas', '0'))
-    flame_detected = int(request.form.get('flame', '0'))
+    if not 'guid' in data:
+        return {'error': 'GUID key missing'}, 400
+
+    if not 'gas_value' in data:
+        return {'error': 'gas_value key missing'}, 400
+
+    guid = data['guid']
+    gas_value = int(data['gas_value'])
+    gas_detected = int(data.get('gas_detected', '0'))
+    flame_detected = int(data.get('flame_detected', '0'))
     sensor = Sensor.query.filter_by(guid=guid).first()
 
     # ignore first message after alarm boots up
