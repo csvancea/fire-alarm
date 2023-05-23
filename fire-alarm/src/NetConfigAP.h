@@ -27,6 +27,7 @@ private:
     void getSettings();
     void postSettings();
     void postSwitchMode();
+    void postPing();
 
     void printRequest();
 

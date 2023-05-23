@@ -10,10 +10,11 @@ NetConfigAP::NetConfigAP(NetManager& parent, WiFiClass& wifiClass, SettingsManag
     , m_wifiClass(wifiClass)
     , m_settingsManager(settingsManager)
 {
-    m_webServer.on("/v1/access-points", HTTPMethod::HTTP_GET, std::bind(&NetConfigAP::getAccessPoints, this));
-    m_webServer.on("/v1/settings", HTTPMethod::HTTP_GET, std::bind(&NetConfigAP::getSettings, this));
-    m_webServer.on("/v1/settings", HTTPMethod::HTTP_POST, std::bind(&NetConfigAP::postSettings, this));
-    m_webServer.on("/v1/switch-mode", HTTPMethod::HTTP_POST, std::bind(&NetConfigAP::postSwitchMode, this));
+    m_webServer.on("/api/v1/access-points", HTTPMethod::HTTP_GET, std::bind(&NetConfigAP::getAccessPoints, this));
+    m_webServer.on("/api/v1/settings", HTTPMethod::HTTP_GET, std::bind(&NetConfigAP::getSettings, this));
+    m_webServer.on("/api/v1/settings", HTTPMethod::HTTP_POST, std::bind(&NetConfigAP::postSettings, this));
+    m_webServer.on("/api/v1/switch-mode", HTTPMethod::HTTP_POST, std::bind(&NetConfigAP::postSwitchMode, this));
+    m_webServer.on("/api/v1/ping", HTTPMethod::HTTP_POST, std::bind(&NetConfigAP::postPing, this));
 }
 
 bool NetConfigAP::Start()
@@ -123,6 +124,19 @@ void NetConfigAP::postSwitchMode()
 
     m_netManager.RequestToSwitchToSTA();
     m_webServer.send(200);
+}
+
+void NetConfigAP::postPing()
+{
+    printRequest();
+
+    if (m_webServer.args() != 1) {
+        m_webServer.send(400);
+        return;
+    }
+
+    String content = m_webServer.arg(0);
+    m_webServer.send(200, "text/plain", content);
 }
 
 void NetConfigAP::printRequest()
