@@ -2,7 +2,17 @@ from howl import app, db
 from flask import request, url_for
 from datetime import datetime
 from howl.models import Measurement, Sensor
+from sqlalchemy import or_
 import requests
+
+def measurementToDict(measurement):
+    return {
+        'id': measurement.id,
+        'gas_value': measurement.gas_value,
+        'gas_detected': measurement.gas_detected,
+        'flame_detected': measurement.flame_detected,
+        'created': measurement.created.isoformat() + 'Z'
+    }
 
 @app.route('/api/v1/measurements', methods=['GET'])
 def list_measurements():
@@ -15,20 +25,23 @@ def list_measurements():
 
     items = []
     for item in pagination.items:
-        measurement = {
-            'id': item.id,
-            'sensor_guid': item.sensor_guid,
-            'gas_value': item.gas_value,
-            'gas_detected': item.gas_detected,
-            'flame_detected': item.flame_detected,
-            'created': item.created
-        }
-        items.append(measurement)
+        items.append(measurementToDict(item))
 
     return {
         'items': items,
         'total_count': measurements.count()
     }
+
+@app.route('/api/v1/latest-detection', methods=['GET'])
+def get_latest_detection():
+    """Get latest measurement where gas or fire were detected."""
+    guid = request.args['guid']
+    measurement = Measurement.query.filter_by(sensor_guid=guid).filter(or_(Measurement.gas_detected == True, Measurement.flame_detected == True)).order_by(Measurement.id.desc()).first()
+
+    if measurement == None:
+        return {'error': 'FireAlarm never triggered'}, 400
+
+    return measurementToDict(measurement)
 
 @app.route('/api/v1/measurement/add', methods=['POST'])
 def add_measurement():
