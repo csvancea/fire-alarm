@@ -42,6 +42,6 @@ private:
         unsigned int flags;
     } volatile m_detection;
 
-    long m_serverLastNotificationTime;
-    static constexpr long s_serverHeartbeatInterval = 60 * 1000;
+    unsigned long m_serverLastNotificationTime;
+    static constexpr unsigned long s_serverHeartbeatInterval = 60 * 1000;
 };

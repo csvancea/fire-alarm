@@ -61,7 +61,7 @@ void FireAlarm::Setup()
 
 void FireAlarm::Loop()
 {
-    long ms = millis();
+    unsigned long ms = millis();
 
     m_detection.flame = m_flameSensor.IsFlameDetected();
     m_detection.gas = m_gasSensor.IsGasDetected();

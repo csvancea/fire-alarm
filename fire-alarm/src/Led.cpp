@@ -39,7 +39,7 @@ void Led::Blink(bool enabled)
 void Led::DoLoop()
 {
     if (m_blinking) {
-        long currentMs = millis();
+        unsigned long currentMs = millis();
 
         if (currentMs - m_lastBlink >= s_blinkInterval) {
             m_lastBlink = currentMs;

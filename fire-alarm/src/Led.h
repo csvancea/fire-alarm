@@ -32,5 +32,5 @@ private:
     bool m_blinkingState;
     unsigned long m_lastBlink;
 
-    static constexpr int s_blinkInterval = 500;
+    static constexpr unsigned long s_blinkInterval = 500;
 };
