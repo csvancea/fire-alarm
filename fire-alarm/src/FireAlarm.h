@@ -43,5 +43,7 @@ private:
     } volatile m_detection;
 
     unsigned long m_serverLastNotificationTime;
+    unsigned long m_serverLastPositiveNotificationTime;
     static constexpr unsigned long s_serverHeartbeatInterval = 60 * 1000;
+    static constexpr unsigned long s_serverMinIntervalBetweenPositives = 30 * 1000;
 };

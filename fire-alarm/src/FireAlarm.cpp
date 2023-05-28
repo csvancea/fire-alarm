@@ -14,6 +14,8 @@ FireAlarm::FireAlarm()
     , m_gasSensor(PIN_MQ2_GAS_D, PIN_MQ2_GAS_A)
     , m_buzzer(PIN_BUZZER)
     , m_detection()
+    , m_serverLastNotificationTime(0)
+    , m_serverLastPositiveNotificationTime(0)
 {
     m_detection.flags = 0;
 }
@@ -65,10 +67,14 @@ void FireAlarm::Loop()
 
     m_detection.flame = m_flameSensor.IsFlameDetected();
     m_detection.gas = m_gasSensor.IsGasDetected();
-    
-    m_buzzer.SetState(m_detection.flags);
 
-    if (m_detection.flags || m_serverLastNotificationTime == 0 || ms - m_serverLastNotificationTime > s_serverHeartbeatInterval)
+    bool anyDetection = m_detection.flags;
+    m_buzzer.SetState(anyDetection);
+
+    if (
+        (anyDetection && (m_serverLastPositiveNotificationTime == 0 || ms - m_serverLastPositiveNotificationTime > s_serverMinIntervalBetweenPositives))
+        || (m_serverLastNotificationTime == 0 || ms - m_serverLastNotificationTime > s_serverHeartbeatInterval)
+        )
     {
         int gasValue = m_gasSensor.GetGasValue();
 
@@ -88,6 +94,9 @@ void FireAlarm::Loop()
             serializeJson(doc, serializedJson);
 
             if (m_netManager.Post(serializedJson)) {
+                if (anyDetection) {
+                    m_serverLastPositiveNotificationTime = ms;
+                }
                 m_serverLastNotificationTime = ms;
                 Serial.println("POST'ed measurements");
             }
