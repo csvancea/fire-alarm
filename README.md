@@ -1,294 +1,215 @@
-# [Fire Alarm - Proiectarea cu Microprocesoare 2021](https://ocw.cs.pub.ro/courses/pm/prj2021/avaduva/fire_alarm)
+# [Fire Alarm - Internet of Things 2023](https://ocw.cs.pub.ro/courses/iothings/proiecte/2022sric/fire-alarm)
 
-Autor: [Cosmin-Răzvan Vancea (333CA)](csvancea@gmail.com)
+Author: [Cosmin-Răzvan Vancea (SAS1)](csvancea@gmail.com)
 
-## Introducere
+## Introduction
 
-- Proiectul constă în realizarea unei alarme de incendiu care anunță
-  utilizatorul pe telefon în cazul în care detectează fum sau flăcări.
-- Scopul proiectului este de a detecta incendii, în cazuri extreme un
-  astfel de sistem putând fi un factor decisiv în salvarea de bunuri
-  și vieți.
+- The purpose of this project is to create a smart *FireAlarm*. Upon fire
+  detection, the device will collect environmental data from the sensors and
+  send it to a remote server, which in turn will notify all the users about the
+  incident.
+- The FireAlarm also comes with an easy-to-use configuration app, which is
+  required to connect the FireAlarm device to a local Wi-Fi network.
+- Such a project could prove itself to be extremely helpful. In extreme cases,
+  a fire alarm could be a decisive factor for saving lives and goods.
 
-## Descriere generală
+## Overview
 
 ![fire-alarm-schema-logica.png](docs/img/fire-alarm-schema-logica.png)
 
-- La inițializare, placa Arduino citește de pe un SD Card următoarele
-  date de configurare:
-  1. rețeaua Wi-Fi la care se conectează
-  2. serverul la care va trimite datele
-- Utilizatorul este notificat prin culoarea LED-ului dacă datele de
-  configurare au fost validate sau nu.
-- Placa Arduino citește datele primite de la senzorii de fum si
-  flăcări.
-- În cazul în care cel puțin unul dintre senzori indică un incendiu,
-  se va trimite un semnal către server cu ajutorul modulului Wi-Fi și
-  se va activa alarma sonoră (buzzer).
-- Când serverul primește un semnal de la alarmă, acesta notifică mai
-  departe telefonul proprietarului și/sau alte dispozitive.
+- Upon initialization, the microcontroller reads the configuration data from
+  its internal flash:
+  1. SSID and password of the Wi-Fi network;
+  2. URL of a remote server where the measurements must be sent to;
+  3. GUID that uniquely identifies the FireAlarm device (this ID is sent along
+  with each measurement).
+- The RGB led provides feedback to the user:
+  - green: the device was able to validate the configuration data and connect
+  to the remote server;
+  - red: there is valid configuration data stored inside the flash memory, but
+  it could not be used to connect to the server (network issue);
+  - blue: the device is in configuration mode (happens on the initial startup).
+- The microcontroller monitors the pins of the sensors;
+- If any sensor reads data that could indicate a fire, the ESP32 would query
+  all the sensors and send the data to the remote server. Also, it turns on
+  the buzzer alarm;
+- The remote server relays the fire signal to each user device that is
+  registered for notifications (smartphone, laptop etc).
+
+### Initial Setup/Configuration Mode
+
+<img align='right' src='docs/img/fire-alarm-schema-logica-configurare.png'>
+
+If the flash memory is empty or the user holds down the SETUP button while
+FireAlarm is starting up, then the device will switch to the configuration mode:
+
+- Wi-Fi starts in AP+STA mode, meaning that it would act as a hotspot;
+- a special WebServer is started. It listens to requests made to `192.168.4.1`
+(the IP of the FireAlarm on the local hotspot network);
+- the WebServer exposes a handful of REST API endpoints used to query and alter
+the configuration;
+- once a client connects to the Wi-Fi hotspot and pushes a configuration, the
+FireAlarm would store it in the internal flash and restart itself to the normal
+operation mode.
+
+REST APIs implemented on the microcontroller:
+
+- `GET /api/v1/access-points`: returns a the list of Wi-Fi Access Points
+accessible to the FireAlarm device;
+- `GET /api/v1/settings`: returns the current configuration of the FireAlarm
+device;
+- `POST /api/v1/settings`: pushes a new configuration to the FireAlarm device;
+- `POST /api/v1/switch-mode`: forces the device to switch to the normal mode;
+- `POST /api/v1/ping`: echoes back the request. Useful to determine whether we
+are connected to a FireAlarm device.
 
 ## Hardware Design
 
-### Componente
+### Components
 
-1. [Arduino UNO](https://www.optimusdigital.ro/ro/compatibile-cu-arduino-uno/1678-placa-de-dezvoltare-compatibila-cu-arduino-uno-atmega328p-i-ch340.html)
-2. [Senzor de gaze MQ-2](https://www.optimusdigital.ro/ro/senzori-de-gaze/107-modul-senzor-gas-mq-2.html)
-3. [Senzor de flacără IR](https://www.optimusdigital.ro/ro/senzori-senzori-optici/110-modul-senzor-de-flacara-.html)
-4. [Modul Wi-Fi ESP-01](https://www.optimusdigital.ro/ro/wireless-wifi/222-modul-wi-fi-esp-01-negru.html)
-5. [Modul SD Card](https://www.optimusdigital.ro/ro/memorii/1516-modul-slot-card-microsd.html)
-6. [Modul buzzer activ](https://www.optimusdigital.ro/ro/audio-buzzere/10-modul-cu-buzzer-activ.html)
-7. [Led RGB](https://www.optimusdigital.ro/ro/optoelectronice-led-uri/483-led-rgb-catod-comun.html)
-8. [Rezistențe (3x 2.2k + 1x 10k)](https://www.optimusdigital.ro/ro/kituri/4745-set-de-rezistoare-asortate-optimus-digital-intre-10-1-m-600-buc-0616639927610.html)
-9. [Condensatoare (3x 10uF)](https://www.optimusdigital.ro/ro/componente-electronice-condensatoare/1880-condensator-electrolitic-de-10-uf-la-63-v.html)
-10. [Breadboard](https://www.optimusdigital.ro/ro/prototipare-breadboard-uri/8-breadboard-830-points.html)
-11. [Mini breadboard](https://www.optimusdigital.ro/ro/prototipare-breadboard-uri/244-mini-breadboard-colorat.html)
-12. [Fire tată-tată (3 seturi)](https://www.optimusdigital.ro/ro/fire-fire-mufate/885-set-fire-tata-tata-10p-10-cm.html)
-13. [Fire mamă-tată (1 set)](https://www.optimusdigital.ro/ro/fire-fire-mufate/650-fire-colorate-mama-tata-10p.html)
+1. [WeMos LOLIN32](https://cleste.ro/placa-dezvoltare-esp-wroom-32-esp-32s.html)
+2. [MQ-2 Gas Sensor Module](https://www.optimusdigital.ro/en/gas-sensors/107-mq-2-gas-sensor-module.html)
+3. [IR Flame Sensor](https://www.optimusdigital.ro/en/optical-sensors/110-ir-flame-sensor.html)
+4. [Active Buzzer Module](https://www.optimusdigital.ro/en/buzzers/10-active-buzzer-module.html)
+5. [RGB LED Common Cathode](https://www.optimusdigital.ro/en/leds/483-rgb-led-common-cathode.html)
+6. [Resistors (3x 2.2k)](https://www.optimusdigital.ro/en/kits/4745-optimus-digital-resistor-assortment-kit-10-to-1m-600pcs-0616639927610.html)
+7. [Capacitors (1x 47uF)](https://www.optimusdigital.ro/en/capacitors/1880-electrolytic-condenser-from-10-uf-to-63-v.html)
+8. [Breadboard](https://www.optimusdigital.ro/en/breadboards/8-breadboard-hq-830-points.html)
 
-### Schema electrică
+### Electronic Schematics
 
 ![fire-alarm-schema-electrica.png](/docs/img/fire-alarm-schema-electrica.png)
 
 ## Software Design
 
-### Informații generale
+### General Information
 
-Proiectul este compus din două componente software:
+We will only focus on the microcontroller software.
 
-1. [software-ul pentru Arduino](fire-alarm):
-  responsabil cu citirea senzorilor și transmiterea datelor către
-  server
-2. [software-ul pentru server](howl):
-  responsabil cu prelucrarea și stocarea datelor primite, urmată de
-  notificarea dispozitivelor clienților
+The project is comprised of three main software components:
 
-Codul Arduino a fost dezvoltat în [Visual Micro](https://www.visualmicro.com/).
+1. [ESP32 Software](fire-alarm):
+  communicates with the sensors and sends the measurements to the remote server;
+2. [Remote Server](howl):
+  processes and stores the measurements; notifies the registered devices;
+  provides a web interface for visualizing the data;
+3. [Android Companion App](https://github.com/csvancea/howl-android):
+  consumes the configuration API and provides a human interface for setting up
+  the FireAlarm device; can also be used to visualize the data sent to the
+  remote server.
 
-### Biblioteci
+We will only focus on the microcontroller software.
 
-Pentru realizarea proiectului am utilizat următoarele biblioteci
-3rd-party:
+### ESP32 Software
 
-- [SDLib](https://www.arduino.cc/en/reference/SD): permite accesarea
-  cardului SD unde este stocat fișierul de configurare
-- [IniFile](https://www.arduino.cc/reference/en/libraries/inifile/):
-  permite citirea fișierului `/fire-alarm/net-config.ini` de pe cardul
-  SD
+The code is split into multiple "modules":
 
-În plus am dezvoltat următoarele două mini-biblioteci pentru a ușura
-interacțiunea cu dispozitivele conectate:
+- `SettingsManager`: manages the configuration data
+  - provides a mechanism for serializing and unserializing the data;
+  - provides an interface for reading and writing the configuration from/to
+  the flash storage.
+- `NetManager`: manages the Wi-Fi operation mode (station or client). Branches
+down further in two modules:
+  - `NetClient`: the FireAlarm device acts as a client
+    - provides a mechanism for connecting to a remote web server through HTTPs;
+    - can only POST data (measurements).
+  - `NetConfigAP`: the FireAlarm device acts as a station ("Hotspot")
+    - implements a WebServer;
+    - the WebServer handles a series of REST API endpoints (explained above);
+    - can temporarily switch the Wi-Fi module to station mode in order to scan
+    for other APs.
+- `(Flame|Gas)Sensor`: abstraction layer for the sensors
+  - can register an interrupt on a pin;
+  - invokes a callback each time an interruption is raised (the value on the pin
+  changed);
+  - provides a mechanism for reading the sensor.
+- `Led`: abstraction layer for a 4-pin RGB led
+  - provides a way to change the color, intensity, blinking rate etc
+- `Buzzer`: abstraction layer
+- `FireAlarm`: puts together the components above; responsible for the general
+logic of the program.
 
-- [ESP8266](fire-alarm/src/ESP8266.cpp):
-  abstractizează comenzile date plăcii Wi-Fi ESP-01. În mod normal,
-  ESP-01 primește comenzi de forma `AT+<cmd> <parametri>` și
-  returnează un răspuns pe interfața serială. Biblioteca are rolul de
-  a ascunde aceste detalii în spatele unei interfețe high-level (clasă
-  C++), astfel nu va trebui să lucrez direct cu interfața serială. În
-  plus, biblioteca oferă suport minimalist pentru trimiterea de cereri
-  HTTP.
-- [AsyncADC](fire-alarm/src/AsyncADC.cpp):
-  permite inițializarea unei conversii ADC fără să se aștepte
-  rezultatul. Se poate utiliza în cadrul întreruperilor deoarece
-  timpul de execuție este foarte scurt (doar se face o scriere într-un
-  registru de control). Biblioteca abstractizează lucrul cu regiștrii
-  de control ai ADC-ului (`ADCSRA` și `ADMUX`).
+### 3rd-party Libraries
 
-### Funcții implementate
+Moreover, the following 3rd-party libraries are used:
 
-Mai jos sunt detaliate cele mai importante funcții din fișierul sursă
-principal:
-[fire-alarm.ino](fire-alarm/fire-alarm.ino).
+- [ArduinoJson](https://arduinojson.org/): JSON serializer/deserializer. Used
+for communicating through REST APIs and storing the configuration as a text
+file.
+- [EasyButton](https://reference.arduino.cc/reference/en/libraries/easybutton/):
+abstraction layer for push buttons. Provides a debouncing mechanism and invokes
+a user-defined callback on button press.
 
-Funcții de **`setup()`**:
+### Interrupts
 
-- `InitSDCard`: inițializează modulul pentru SD Card și citește datele
-  de configurare din fișierul `/fire-alarm/net-config.ini`
-- `InitWiFi`: așteaptă inițializarea modulului Wi-Fi și se conectează
-  la AP-ul (router wireless) specificat în fișierul de configurare de
-  către utilizator
-- `BlinkForever`: în cazul în care se detectează o eroare la oricare
-  pas de inițializare descris anterior, se apelează această funcție
-  care blochează execuția codului și va seta LED-ul să emită o anumită
-  culoare care semnalează eroarea întalnită.
-- `SetLEDColour`: setează culoarea LED-ului RGB. Acest LED este
-  folosit pentru a semnala starea în care se află aparatul (ex: verde
-  = inițializat + stare OK de funcționare)
-
-În plus, în faza de `setup` se activează întreruperile pe liniile `INT0`
-(senzor fum) și `INT1` (senzor flăcări) și se atașează câte un ISR care
-va fi executat la schimbarea valorilor.
-
-Funcții de **`loop()`**:
-
-- `PostDataToServer`: se reconectează la AP (în cazul în care s-a
-  pierdut conexiunea) și se postează un mesaj HTTP la endpoint-ul
-  specificat în fișierul de configurare. Dacă nu se poate trimite
-  mesajul, atunci se va semnala eroarea prin LED și se va reîncerca
-  transmiterea pachetului la fiecare 10 secunde până se reușește. Spre
-  deosebire de o eroare de inițializare, aici execuția codului nu se
-  mai oprește.
-- `SendNotification`: se generează body-ul cererii HTTP POST în
-  funcție de datele citite de la senzori, apoi se apelează
-  `PostDataToServer` pentru a trimite cererea.
-
-Pe langă semnalizarea prin LED, dispozitivul va scrie pe interfața
-serială mesaje de logging la fiecare pas important (în special:
-inițializare SD Card/Wi-Fi și trimiterea de mesaje HTTP). Acest lucru
-ajută la depanarea problemelor.
-
-Rutine pentru **întreruperi**:
-
-- `GasInterrupt`: apelată la schimbarea valorii de pe pinul digital
-  asociat senzorului de fum. Dacă noua valoare este `LOW` înseamnă că
-  senzorul a detectat fum și se va inițializa `AsyncADC`-ul definit
-  anterior pentru a porni citirea de pe pinul analog asociat. Se va
-  seta o variabilă globală pentru a marca evenimentul.
-- `FlameInterrupt`: apelată la schimbarea valorii de pe pinul digital
-  asociat senzorului de flăcări. Dacă noua valoare este `LOW` înseamnă
-  că senzorul a detectat flăcări și se va marca faptul că s-au
-  detectat flăcări într-o variabilă globală
-  - *notă:* din păcate modulul pentru senzorul de flăcări folosit de
-    mine nu are și un pin analog de pe care să pot citi
-    intensitatea.
-
-De asemenea, la detectarea de fum sau flăcări se va activa alarma
-sonoră. Aceasta se oprește când ambii senzori nu mai detectează nimic
-suspect.
-
-După cum se observă, în rutinele de întreruperi nu se întamplă nimic
-excepțional, maxim se scrie în 1-2 variabile/regiștri. Codul care se
-ocupă cu notificarea se află în `loop`. Aici la fiecare *X* secunde se
-verifică dacă senzorii au detectat ceva (se interoghează variabilele
-globale scrise în ISR), iar în caz afirmativ, se va citi valoarea
-senzorului de fum prin `AsyncADC` și se vor trimite măsurătorile la
-server. Motivul pentru care am optat să implementez și să folosesc
-`AsyncADC` în loc de un simplu `analogRead` în `loop` este că de la
-momentul în care este declanșată întreruperea până la momentul în care
-se face polling în `loop` pot trece multe secunde/minute, iar astfel
-senzorul poate să îmi returneze valori normale în momentul când eu le
-citesc în `loop`. Folosind `AsyncADC` mă asigur că în `loop` voi avea
-acces la datele care erau citite acum *Y* secunde când s-a declanșat
-întreruperea.
-
-### Fișierul de configurare
-
-Utilizatorul dispozitivului poate specifica datele de configurare fără a
-fi nevoit sa recompileze software-ul -- doar trebuie să modifice un
-fișier de configurare de pe un SD Card\! Fișierul trebuie plasat pe
-card la calea: `/fire-alarm/net-config.ini`. Exemplu:
-
-```ini
-[wifi]
-ssid=HUAWEI-abcd                          ; nume rețea wireless
-pass=my-extremely-hard-to-guess-password  ; parolă wireless
-
-[server]
-host=fire-alarm.example.com               ; adresa serverului destinație
-port=7331                                 ; portul serverului destinație
-endpoint=/api/v1/measurement/add          ; calea către endpoint-ul unde se vor posta măsurătorile
-guid=744A2B95-D130-40A1-94E3-D8719FEDCCCD ; identificator unic pentru fiecare dispozitiv "Fire Alarm"
-```
-
-### Optimizări de memorie
-
-Arduino UNO dispune de două spații de memorie diferite: 2K memorie SRAM
-și 32K memorie flash. Memoria SRAM mică limitează foarte mult
-dimensiunea datelor cu care pot lucra (inclusiv string-uri -\> acestea
-sunt stocate în SRAM, deci în cel mai bun caz aș putea avea maxim \~2000
-de caractere fără să mai iau în considerare stack-ul și restul datelor
-din program).
-
-Pentru a ocoli această limită, am ales să stochez datele constante (eg:
-string-uri) în memoria flash folosind keyword-ul
-[PROGMEM](https://www.arduino.cc/reference/en/language/variables/utilities/progmem/)
-oferit de AVR și să le aduc în SRAM doar când am nevoie să le prelucrez
-(eg: formatarea unei cereri HTTP/unui mesaj de eroare). Acest trick îmi
-permite să:
-
-1. am string-uri de dimensiune mare în program (eg: cereri HTTP
-  neformatate)
-2. am mesaje de eroare foarte explicite
-3. reduc la minim utilizarea SRAM-ului
-
-În plus, majoritatea funcțiilor care acceptă string-uri constante
-implementate de mine au două forme: (vezi
-[ESP8266.h](fire-alarm/src/ESP8266.h))
-
-1. una care accepta string-uri din SRAM
-2. una care acceptă string-uri din FLASH
+During a network operation, the device might appear unresponsive due to the main
+`loop()` being busy processing the network request. In order to increase the
+responsiveness of the FireAlarm device, **interrupts** are being used: each time
+a sensor value changes, an interrupt is raised. The interrupt handler marks the
+event for further processing in the main loop and changes the state of the
+buzzer (on/off) so that the alarm appears to be responsive to the nearby people.
 
 ### Server
 
-Software-ul pentru server este realizat în
-[Flask](https://flask.palletsprojects.com/en/1.1.x/). Practic este un
-web server care:
+The server software is written in [Flask](https://flask.palletsprojects.com/en/1.1.x/).
+It is basically a web server that:
 
-1. expune un endpoint la care dispozitivul Arduino trimite măsurătorile
-    împreuna cu GUID-ul său (fiecare dispozitiv Fire Alarm este
-    identificat printr-un GUID specificat în fișierul de configurare)
-2. oferă utilizatorului o interfață web prin care poate citi
-    măsurătorile senzorilor săi (trebuie să cunoască GUID-ul)
+- exposes an REST API endpoint for the ESP32 to post measurements to. Note that
+each POST request must contain the GUID of the FireAlarm, otherwise the server
+would not be able to tell different devices apart;
+- provides a web interface for reading the measurement. The user must know the
+FireAlarm GUID.
 
-Notificarea pe telefon se face prin serviciul
-[PushBullet](https://pushbullet.com/). În interfața web, proprietarul
-poate asocia un cont de PushBullet dispozitivelor sale. Fiecare
-măsurătoare care depășește valorile normale va fi trimisă ca
-notificare contului PushBullet asociat.
+The alarm notification is served though [PushBullet](https://pushbullet.com/).
+For the notification mechanism to actually work, the user must associate a
+PushBullet token to their FireAlarm GUID. This operation can be done though the
+web interface.
 
-Detaliile de implementare nu intră în materia cursului. :-)
+### Android Companion App
 
-## Rezultate obținute
+Written in Java. It is basically a client that consumes both the API provided
+by the ESP32 (when in configuration mode) and the API provided by the remote
+web server.
 
-### Poze dispozitiv
+The app provides a step-by-step tutorial on how to configure the FireAlarm.
+After the configuration is done, the app stores locally the assigned GUID of
+the FIreAlarm device so that the users are not needed to remember the GUID
+themselves.
+
+## Results
+
+### FireAlarm Prototype
 
 ![fire-alarm-photo.jpg](docs/img/fire-alarm-photo.jpg)
 ![fire-alarm-photo-2.jpg](docs/img/fire-alarm-photo-2.jpg)
 
-### Interfața cu utilizatorul
+### Web Interface
 
 ![fire-alarm-web-interface.png](docs/img/fire-alarm-web-interface.png)
 ![fire-alarm-phone-notification.png](docs/img/fire-alarm-phone-notification.png)
 
-### Videoclip de prezentare
+### Android Companion App
 
-[![YouTube video](https://img.youtube.com/vi/dchMreNvpHc/0.jpg)](https://www.youtube.com/watch?v=dchMreNvpHc)
+<img src='docs/img/fire-alarm-android-startup.jpg' height='600'> <img src='docs/img/fire-alarm-android-config.jpg' height='600'> <img src='docs/img/fire-alarm-android-interface.jpg' height='600'>
 
-## Concluzii
 
-A fost o experiență productivă deoarece proiectul ales de mine a trebuit
-să fie gândit din două perspective diferite care trebuie să se
-întâlnească într-un punct comun: un sistem local ce colectează date de
-la senzori și un sistem remote ce primește aceste date, le prelucrează
-și le distribuie mai departe. Pe lângă implementarea efectivă, a fost
-nevoie de multă documentare în prealabil, iar astfel m-am familiarizat
-cu căutarea de informații în documentația oficială.
+## Conclusion
 
-## Lansare web server
+It was a challenging and productive experience because I had to approach the
+project from three different perspectives: a local system that collects data
+from sensors; a remote system that receives and processes measurements from
+multiple devices; and a hybrid system that must communicate to both the local
+system (through a local network/"Hotspot") and to the remote system (through
+the Internet).
 
-```text
-git clone https://github.com/csvancea/fire-alarm.git
-cd fire-alarm/howl
-python3 -m pip install -r requirements.txt
-python3 runserver.py
-```
+## Resources
 
-## Jurnal
-
-- 19 aprilie 2021 - sosire componente
-- 23 aprilie 2021 - realizat ansambul hardware
-- 24 aprilie 2021 - creată pagina proiectului
-- 03 mai 2021 - implementat software-ul pentru Arduino
-- 06 mai 2021 - implementat software-ul pentru Server
-- 24 mai 2021 - completată pagina proiectului
-
-## Bibliografie/Resurse
-
-- [ATmega328P Datasheet (ADC & Timers)](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf)
-- [ESP8266 AT Instruction Set](https://www.espressif.com/sites/default/files/documentation/4a-esp8266_at_instruction_set_en.pdf)
-- [Arduino SoftwareSerial](https://www.arduino.cc/en/Reference/softwareSerial)
-- [Arduino SD Library](https://www.arduino.cc/en/reference/SD)
-- [Arduino SD Card Best Practices](https://www.arduino.cc/en/Reference/SDCardNotes)
-- [Arduino PROGMEM](https://www.arduino.cc/reference/en/language/variables/utilities/progmem/)
+- [ESP32 Arduino Core’s documentation](https://docs.espressif.com/projects/arduino-esp32/en/latest/)
+- [Arduino ESP-32 Wi-Fi API](https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/wifi.html)
+- [Arduino ESP-32 WebServer library source code](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer/src)
+- [ArduinoJson](https://arduinojson.org/)
+- [EasyButton](https://reference.arduino.cc/reference/en/libraries/easybutton/)
 - [Flask Documentation](https://flask.palletsprojects.com/_/downloads/en/1.1.x/pdf/)
 - [PushBullet API Documentation](https://docs.pushbullet.com/)
+- [Android API reference](https://developer.android.com/reference)
+- [TableView for Android](https://github.com/evrencoskun/TableView)
