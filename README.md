@@ -192,6 +192,11 @@ themselves.
 
 <img src='docs/img/fire-alarm-android-startup.jpg' height='600'> <img src='docs/img/fire-alarm-android-config.jpg' height='600'> <img src='docs/img/fire-alarm-android-interface.jpg' height='600'>
 
+### Videos
+
+[![YouTube video](https://img.youtube.com/vi/ICl5pUPg5os/0.jpg)](https://www.youtube.com/watch?v=ICl5pUPg5os)
+
+[![YouTube video](https://img.youtube.com/vi/uGO8yVp4mvE/0.jpg)](https://www.youtube.com/watch?v=uGO8yVp4mvE)
 
 ## Conclusion
 
